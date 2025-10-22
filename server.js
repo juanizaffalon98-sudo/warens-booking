@@ -13,21 +13,20 @@ app.use(express.json());
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// ---- CORS (permití solo tu dominio de Odoo) ----
+// ---- CORS ----
 const allowed = process.env.ALLOWED_ORIGIN?.split(',').map(s => s.trim()).filter(Boolean) || [];
 app.use(cors({
   origin: (origin, cb) => {
-    if (!origin) return cb(null, true);               // permite curl/postman
+    if (!origin) return cb(null, true);
     if (allowed.includes(origin)) return cb(null, true);
     return cb(new Error('Not allowed by CORS'), false);
   }
 }));
 
-// ---- Config de slots ----
+// ---- Slots ----
 const SLOT_MAP = { A: { start: '13:00', end: '15:00' }, B: { start: '15:00', end: '17:00' } };
 
 function todayCST() {
-  // simplificado: usamos día UTC para “hoy” (suficiente para ventana de 14 días)
   const now = new Date();
   return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
 }
@@ -38,7 +37,7 @@ function toISODate(d) {
   return `${y}-${m}-${day}`;
 }
 function isWeekday(d) {
-  const wd = d.getUTCDay(); // 0=dom..6=sab
+  const wd = d.getUTCDay(); // 1..5 = lun..vie
   return wd >= 1 && wd <= 5;
 }
 function rollingWindow(startStr, days=14) {
@@ -52,7 +51,7 @@ function rollingWindow(startStr, days=14) {
   return arr;
 }
 
-// ---------- Rutas públicas ----------
+// ---------- PÚBLICO ----------
 app.get('/availability', async (req, res) => {
   const start = req.query.start || toISODate(todayCST());
   const days = Math.min(parseInt(req.query.days || '14', 10), 31);
@@ -61,7 +60,7 @@ app.get('/availability', async (req, res) => {
   if (dates.length === 0) return res.json([]);
 
   const { rows: bookings } = await pool.query(
-    `SELECT date::text, slot FROM bookings
+    `SELECT id, date::text, slot FROM bookings
      WHERE date >= $1 AND date <= $2`,
     [dates[0], dates[dates.length-1]]
   );
@@ -80,10 +79,10 @@ app.get('/availability', async (req, res) => {
     for (const s of ['A','B']) {
       const key = `${date}|${s}`;
       const booked = bookedSet.has(key);
-      let open = !booked; // abierto si no está reservado
+      let open = !booked;
       if (overrideMap.has(key)) {
         const forced = overrideMap.get(key);
-        open = forced && !booked; // override=false cierra, true abre (si no está reservado)
+        open = forced && !booked; // false = cerrado; true = abierto (si no está reservado)
       }
       slots[s] = { open, booked, label: `${SLOT_MAP[s].start} - ${SLOT_MAP[s].end}` };
     }
@@ -132,7 +131,7 @@ app.post('/book', async (req, res) => {
   }
 });
 
-// ---------- Admin ----------
+// ---------- ADMIN ----------
 function requireAuth(req, res, next) {
   const auth = req.headers.authorization || '';
   const token = auth.replace('Bearer ','').trim();
@@ -144,6 +143,7 @@ app.get('/admin', (req, res) => {
   res.sendFile(path.join(__dirname, 'admin.html'));
 });
 
+// Listado de reservas
 app.get('/admin/api/bookings', requireAuth, async (req, res) => {
   const { from, to } = req.query;
   const params = [];
@@ -160,6 +160,7 @@ app.get('/admin/api/bookings', requireAuth, async (req, res) => {
   res.json(rows);
 });
 
+// Abrir/cerrar cupo manual
 app.post('/admin/api/slot', requireAuth, async (req, res) => {
   const { date, slot, is_open } = req.body || {};
   if (!date || !['A','B'].includes(slot) || typeof is_open !== 'boolean') {
@@ -174,11 +175,11 @@ app.post('/admin/api/slot', requireAuth, async (req, res) => {
   res.json({ ok: true });
 });
 
+// CSV
 app.get('/admin/api/bookings.csv', requireAuth, async (req, res) => {
   const { rows } = await pool.query(
     `SELECT id, full_name, phone, instagram, date::text, slot, created_at
-     FROM bookings
-     ORDER BY date, slot`
+     FROM bookings ORDER BY date, slot`
   );
   const header = 'id,full_name,phone,instagram,date,slot,created_at';
   const lines = rows.map(r => [
@@ -190,20 +191,21 @@ app.get('/admin/api/bookings.csv', requireAuth, async (req, res) => {
   res.send([header, ...lines].join('\n'));
 });
 
-// ---------- Init DB o Servidor ----------
-// Si se ejecuta con --init-db: inicializa y SALE (no abre puerto).
-// Si no: levanta el servidor normalmente.
+// NUEVO: cancelar reserva (libera el cupo)
+app.delete('/admin/api/booking/:id', requireAuth, async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  if (!id) return res.status(400).json({ error: 'ID inválido' });
+  const { rowCount } = await pool.query('DELETE FROM bookings WHERE id=$1', [id]);
+  if (rowCount === 0) return res.status(404).json({ error: 'Reserva no encontrada' });
+  res.json({ ok: true });
+});
+
+// ---------- Init DB o servidor ----------
 if (process.argv.includes('--init-db')) {
   const sql = fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf8');
   initSchema(sql)
-    .then(() => {
-      console.log('DB schema initialized');
-      process.exit(0);
-    })
-    .catch(e => {
-      console.error(e);
-      process.exit(1);
-    });
+    .then(() => { console.log('DB schema initialized'); process.exit(0); })
+    .catch(e => { console.error(e); process.exit(1); });
 } else {
   app.get('/healthz', (_, res) => res.send('ok'));
   const port = process.env.PORT || 3000;
