@@ -13,13 +13,13 @@
       --text:#eeeeee;
       --muted:#b7b7b7;
       --line:#26262b;
-      --gold:#d4af37;     /* oro */
-      --gold-2:#b8911f;   /* oro profundo */
+      --gold:#d4af37;
+      --gold-2:#b8911f;
       --success:#2ecc71;
       --danger:#ff4d4f;
     }
     *{ box-sizing: border-box; }
-    html,body{ height:100%; }
+    html,body{ height:100%; color-scheme: dark; }
     body{
       margin:0; background: radial-gradient(1000px 600px at 20% -10%, rgba(212,175,55,.15), transparent),
                          radial-gradient(900px 600px at 120% 20%, rgba(212,175,55,.10), transparent),
@@ -27,11 +27,10 @@
       color:var(--text);
       font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
     }
-    .wrap{ max-width:1100px; margin:32px auto; padding:0 20px; }
+    .wrap{ max-width:1200px; margin:32px auto; padding:0 20px; }
     h1{
       font-weight:700; letter-spacing:.3px; margin:0 0 18px;
       display:flex; align-items:center; gap:10px;
-      color:var(--text);
     }
     h1::before{
       content:""; width:36px; height:36px; border-radius:50%;
@@ -39,15 +38,8 @@
       box-shadow: 0 0 0 2px rgba(212,175,55,.25), 0 6px 18px rgba(0,0,0,.6);
     }
 
-    .notice{
-      margin:14px 0 22px; padding:12px 14px; border-radius:12px; border:1px solid var(--line);
-      background:linear-gradient(180deg, rgba(255,255,255,.02), rgba(0,0,0,.15));
-      font-size:14px; color:var(--muted);
-    }
-    .notice strong{ color:var(--gold); }
-
     .grid{ display:grid; gap:18px; grid-template-columns: 1fr; }
-    @media (min-width: 880px){ .grid{ grid-template-columns: 1fr 1fr; } }
+    @media (min-width: 980px){ .grid{ grid-template-columns: 1fr 1fr; } }
 
     .card{
       background:linear-gradient(180deg, var(--panel), var(--panel-2));
@@ -55,81 +47,65 @@
       border-radius:16px; padding:18px;
       box-shadow: 0 10px 30px rgba(0,0,0,.25);
     }
-    .card h3{ margin:0 0 12px; color:var(--text); font-size:18px; }
-    label{ font-size:13px; color:var(--muted); }
+    .card h3{ margin:0 0 12px; font-size:18px; }
 
     .row{ display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
+    label{ font-size:13px; color:var(--muted); }
+
     input, select, button{
       background:#0e0e11; color:var(--text);
       border:1px solid var(--line); border-radius:12px;
-      padding:10px 12px; font-size:14px;
-      outline:none;
+      padding:10px 12px; font-size:14px; outline:none;
     }
-    input:focus, select:focus{
-      border-color: var(--gold);
-      box-shadow: 0 0 0 3px rgba(212,175,55,.15);
+    input:focus, select:focus{ border-color: var(--gold); box-shadow: 0 0 0 3px rgba(212,175,55,.15); }
+    /* ICONOS DE CALENDARIO EN BLANCO */
+    input[type="date"]::-webkit-calendar-picker-indicator{
+      filter: invert(1) brightness(1.2);
+      cursor: pointer;
+    }
+    input[type="date"]{
+      color-scheme: dark;
     }
 
-    .btn{
-      background: linear-gradient(180deg, var(--gold), var(--gold-2));
-      border:none; color:#1a1a1a; font-weight:700; letter-spacing:.3px;
-      cursor:pointer; transition: transform .05s ease, filter .2s ease;
-    }
+    .btn{ background: linear-gradient(180deg, var(--gold), var(--gold-2)); border:none; color:#1a1a1a;
+          font-weight:700; letter-spacing:.3px; cursor:pointer; transition: transform .05s ease, filter .2s ease; }
     .btn:hover{ filter: brightness(1.05); }
     .btn:active{ transform: translateY(1px); }
+    .btn-ghost{ background:transparent; color:var(--gold); border:1px solid var(--gold); cursor:pointer; }
 
-    .btn-ghost{
-      background:transparent; color:var(--gold); border:1px solid var(--gold);
-      cursor:pointer;
-    }
-    .muted{ color:var(--muted); font-size:13px; }
-
-    table{ width:100%; border-collapse: collapse; margin-top:10px; }
-    th, td{ border-bottom:1px solid var(--line); padding:10px; font-size:14px; }
-    th{ text-align:left; color:var(--muted); font-weight:600; }
-    tbody tr:hover{ background:#121216; }
-
-    .status{
-      margin-top:8px; font-size:14px; padding:10px 12px; border-radius:10px; border:1px solid var(--line);
-      display:none;
-    }
+    .status{ margin-top:8px; font-size:14px; padding:10px 12px; border-radius:10px; border:1px solid var(--line); display:none; }
     .status.ok{ display:block; color:#0f0; border-color: rgba(46,204,113,.25); background:rgba(46,204,113,.08); }
     .status.err{ display:block; color:#ff9ea1; border-color: rgba(255,77,79,.3); background:rgba(255,77,79,.07); }
 
-    .toolbar{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
-    .spacer{ flex:1; }
-    a.link{ color:var(--gold); text-decoration: none; border-bottom:1px dotted var(--gold); }
-    a.link:hover{ opacity:.9; }
+    table{ width:100%; border-collapse: collapse; margin-top:10px; }
+    th, td{ border-bottom:1px solid var(--line); padding:10px; font-size:14px; vertical-align: top; }
+    th{ text-align:left; color:var(--muted); font-weight:600; }
+    tbody tr:hover{ background:#121216; }
+    .actions{ display:flex; gap:8px; flex-wrap:wrap; }
+    .badge{ display:inline-block; padding:2px 8px; border-radius:999px; border:1px solid var(--gold); color:var(--gold); font-size:12px; }
   </style>
 </head>
 <body>
   <div class="wrap">
     <h1>Admin – Reservas</h1>
-    <div class="notice">
-      Gestioná la agenda semanal de contenidos. <strong>Tip:</strong> “Cerrar” un slot lo oculta del widget, “Abrir” lo vuelve a mostrar (si no está reservado).
-    </div>
 
     <div class="grid">
       <!-- Autenticación -->
       <div class="card">
         <h3>Autenticación</h3>
-        <div class="toolbar">
+        <div class="row">
           <input id="pwd" type="password" placeholder="ADMIN_PASSWORD" style="min-width:240px">
           <button class="btn" onclick="login()">Usar</button>
-          <div class="spacer"></div>
           <button class="btn-ghost" id="csv" onclick="downloadCSV(event)">Descargar CSV</button>
         </div>
         <div id="auth-msg" class="status"></div>
-        <div class="muted" style="margin-top:8px">
-          La sesión se guarda en este navegador. Si cambiás la clave en Render, hacé “Usar” otra vez.
-        </div>
       </div>
 
       <!-- Abrir/Cerrar -->
       <div class="card">
-        <h3>Abrir/Cerrar cupo</h3>
+        <h3>Abrir / Cerrar cupo</h3>
         <div class="row" style="gap:12px">
-          <label>Fecha<br><input id="ov-date" type="date"></label>
+          <label>Fecha<br><input id="ov-date" type="date" placeholder="AAAA-MM-DD"></label>
           <label>Turno<br>
             <select id="ov-slot">
               <option value="A">A (13–15)</option>
@@ -146,7 +122,7 @@
             <button class="btn" onclick="toggle()">Aplicar</button>
           </div>
         </div>
-        <div id="ov-msg" class="status" style="margin-top:10px"></div>
+        <div id="ov-msg" class="status"></div>
       </div>
     </div>
 
@@ -164,32 +140,33 @@
       <table id="tbl">
         <thead>
           <tr>
-            <th>Fecha</th><th>Slot</th><th>Nombre</th><th>Phone</th><th>Instagram</th><th>Creado</th>
+            <th>Fecha</th><th>Slot</th><th>Datos</th><th>Creado</th><th>Acciones</th>
           </tr>
         </thead>
         <tbody></tbody>
       </table>
+
+      <div id="list-msg" class="status"></div>
     </div>
   </div>
 
 <script>
 const API = location.origin;
 
+// token simple guardado en localStorage
 function tok() { return localStorage.getItem('admin_token') || ''; }
 function setTok(v){ localStorage.setItem('admin_token', v || ''); }
 
-function show(el, type, msg){
-  const e = document.getElementById(el);
+function statusMsg(id, type, msg){
+  const e = document.getElementById(id);
   e.className = 'status ' + (type === 'ok' ? 'ok' : 'err');
   e.textContent = msg || '';
 }
 
 async function verifyAuth(){
-  // Probamos un GET protegido para validar el token
   try{
     const r = await fetch(API + '/admin/api/bookings', { headers:{ Authorization: 'Bearer ' + tok() }});
-    if (r.status === 200) return true;
-    return false;
+    return r.status === 200;
   }catch(_){ return false; }
 }
 
@@ -198,35 +175,32 @@ async function login(){
   setTok(pass);
   const ok = await verifyAuth();
   if (ok){
-    show('auth-msg', 'ok', '¡Bienvenido/a! Acceso concedido.');
+    statusMsg('auth-msg','ok','¡Bienvenido/a! Acceso concedido.');
   } else {
-    setTok(''); // limpiamos si no es válida
-    show('auth-msg', 'err', 'Contraseña incorrecta. Verificá ADMIN_PASSWORD en Render.');
+    setTok('');
+    statusMsg('auth-msg','err','Contraseña incorrecta. Verificá ADMIN_PASSWORD en Render.');
   }
 }
 
-// DESCARGA CSV con Authorization
 async function downloadCSV(e){
   e?.preventDefault?.();
   const ok = await verifyAuth();
-  if (!ok){ show('auth-msg', 'err', 'Necesitás iniciar sesión para descargar.'); return; }
+  if (!ok){ statusMsg('auth-msg','err','Iniciá sesión para descargar.'); return; }
   try{
     const r = await fetch(API + '/admin/api/bookings.csv', { headers:{ Authorization: 'Bearer ' + tok() }});
     if (!r.ok) throw new Error('Error ' + r.status);
     const blob = await r.blob();
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = 'bookings.csv';
-    document.body.appendChild(a); a.click();
-    a.remove(); URL.revokeObjectURL(url);
+    const a = document.createElement('a'); a.href = url; a.download = 'bookings.csv';
+    document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
   }catch(err){
-    show('auth-msg', 'err', 'No se pudo descargar el CSV (' + err.message + ')');
+    statusMsg('auth-msg','err','No se pudo descargar el CSV ('+err.message+')');
   }
 }
 
 async function load() {
   const ok = await verifyAuth();
-  if (!ok){ show('auth-msg', 'err', 'Iniciá sesión para ver reservas.'); return; }
+  if (!ok){ statusMsg('auth-msg','err','Iniciá sesión para ver reservas.'); return; }
 
   const q = [];
   const f = document.getElementById('from').value;
@@ -237,44 +211,60 @@ async function load() {
 
   try{
     const r = await fetch(url, { headers: { Authorization: 'Bearer ' + tok() }});
-    if (r.status === 401){ show('auth-msg', 'err', 'Sesión inválida o expirada. Cargá de nuevo la clave.'); return; }
+    if (r.status === 401){ statusMsg('auth-msg','err','Sesión inválida. Ingresá la clave.'); return; }
     const data = await r.json();
     const tb = document.querySelector('#tbl tbody');
     tb.innerHTML = '';
 
     if (Array.isArray(data) && data.length){
       for (const row of data) {
+        const info = `
+          <div><strong>${row.full_name}</strong></div>
+          <div class="muted">Tel: ${row.phone}</div>
+          <div class="muted">IG: ${row.instagram}</div>
+          <div class="badge">ID ${row.id}</div>
+        `;
         const tr = document.createElement('tr');
         tr.innerHTML = `
           <td>${row.date}</td>
           <td>${row.slot}</td>
-          <td>${row.full_name}</td>
-          <td>${row.phone}</td>
-          <td>${row.instagram}</td>
-          <td>${new Date(row.created_at).toLocaleString()}</td>`;
+          <td>${info}</td>
+          <td>${new Date(row.created_at).toLocaleString()}</td>
+          <td class="actions">
+            <button class="btn-ghost" data-id="${row.id}">Cancelar</button>
+          </td>`;
         tb.appendChild(tr);
       }
-      show('auth-msg', 'ok', 'Reservas cargadas ('+data.length+').');
+      // wire botones cancelar
+      tb.querySelectorAll('button.btn-ghost').forEach(b=>{
+        b.addEventListener('click', async (ev)=>{
+          const id = ev.currentTarget.getAttribute('data-id');
+          if (!confirm('¿Cancelar y liberar este cupo?')) return;
+          await cancelBooking(id);
+        });
+      });
+      statusMsg('list-msg','ok','Reservas cargadas ('+data.length+').');
     } else {
       const tr = document.createElement('tr');
-      tr.innerHTML = `<td colspan="6" class="muted">No hay reservas para el rango elegido.</td>`;
+      tr.innerHTML = `<td colspan="5" class="muted">No hay reservas para el rango elegido.</td>`;
       document.querySelector('#tbl tbody').appendChild(tr);
-      show('auth-msg', 'ok', 'Sin resultados para el rango.');
+      statusMsg('list-msg','ok','Sin resultados para el rango.');
     }
   }catch(err){
-    show('auth-msg', 'err', 'Error al cargar reservas.');
+    statusMsg('list-msg','err','Error al cargar reservas.');
   }
 }
 
+// Abrir / Cerrar cupo
 async function toggle() {
   const ok = await verifyAuth();
-  if (!ok){ show('ov-msg', 'err', 'Iniciá sesión para modificar cupos.'); return; }
+  if (!ok){ statusMsg('ov-msg', 'err', 'Iniciá sesión para modificar cupos.'); return; }
 
   const date = document.getElementById('ov-date').value;
   const slot = document.getElementById('ov-slot').value;
   const is_open = document.getElementById('ov-open').value === 'true';
 
-  if (!date){ show('ov-msg','err','Elegí una fecha.'); return; }
+  if (!date){ statusMsg('ov-msg','err','Elegí una fecha.'); return; }
 
   try{
     const r = await fetch(API + '/admin/api/slot', {
@@ -284,20 +274,39 @@ async function toggle() {
     });
     const j = await r.json();
     if (r.ok && j.ok){
-      show('ov-msg', 'ok', (is_open?'Abierto':'Cerrado') + ' correctamente.');
+      statusMsg('ov-msg', 'ok', (is_open?'Abierto':'Cerrado') + ' correctamente.');
     } else {
-      show('ov-msg', 'err', j.error || 'No se pudo aplicar el cambio.');
+      statusMsg('ov-msg', 'err', j.error || 'No se pudo aplicar el cambio.');
     }
   }catch(err){
-    show('ov-msg', 'err', 'Error de red.');
+    statusMsg('ov-msg', 'err', 'Error de red.');
   }
 }
 
-// Si ya había token guardado, mostramos bienvenida silenciosa
+// Cancelar reserva (DELETE) y recargar tabla
+async function cancelBooking(id){
+  try{
+    const r = await fetch(API + '/admin/api/booking/' + encodeURIComponent(id), {
+      method: 'DELETE',
+      headers: { Authorization: 'Bearer ' + tok() }
+    });
+    if (!r.ok){
+      const j = await r.json().catch(()=>({error:'Error '+r.status}));
+      statusMsg('list-msg','err', j.error || 'No se pudo cancelar.');
+      return;
+    }
+    statusMsg('list-msg','ok','Reserva cancelada. El cupo quedó libre.');
+    load();
+  }catch(err){
+    statusMsg('list-msg','err','Error de red al cancelar.');
+  }
+}
+
+// auto-saludo si había token
 window.addEventListener('DOMContentLoaded', async ()=>{
   if (tok()){
     const ok = await verifyAuth();
-    if (ok) show('auth-msg','ok','Sesión activa.');
+    if (ok) statusMsg('auth-msg','ok','Sesión activa.');
   }
 });
 </script>
