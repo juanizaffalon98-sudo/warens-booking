@@ -37,7 +37,7 @@ function toISODate(d) {
   return `${y}-${m}-${day}`;
 }
 function isWeekday(d) {
-  const wd = d.getUTCDay(); // 1..5 = lun..vie
+  const wd = d.getUTCDay();
   return wd >= 1 && wd <= 5;
 }
 function rollingWindow(startStr, days=14) {
@@ -82,7 +82,7 @@ app.get('/availability', async (req, res) => {
       let open = !booked;
       if (overrideMap.has(key)) {
         const forced = overrideMap.get(key);
-        open = forced && !booked; // false = cerrado; true = abierto (si no está reservado)
+        open = forced && !booked;
       }
       slots[s] = { open, booked, label: `${SLOT_MAP[s].start} - ${SLOT_MAP[s].end}` };
     }
@@ -104,16 +104,10 @@ app.post('/book', async (req, res) => {
 
   try {
     const result = await withTx(async (client) => {
-      const q = await client.query(
-        'SELECT 1 FROM bookings WHERE date=$1 AND slot=$2 FOR UPDATE',
-        [date, slot]
-      );
+      const q = await client.query('SELECT 1 FROM bookings WHERE date=$1 AND slot=$2 FOR UPDATE', [date, slot]);
       if (q.rowCount > 0) throw new Error('Ese turno ya fue reservado');
 
-      const o = await client.query(
-        'SELECT is_open FROM slot_overrides WHERE date=$1 AND slot=$2',
-        [date, slot]
-      );
+      const o = await client.query('SELECT is_open FROM slot_overrides WHERE date=$1 AND slot=$2', [date, slot]);
       if (o.rowCount > 0 && o.rows[0].is_open === false) throw new Error('Ese turno está cerrado');
 
       const ins = await client.query(
@@ -143,7 +137,6 @@ app.get('/admin', (req, res) => {
   res.sendFile(path.join(__dirname, 'admin.html'));
 });
 
-// Listado de reservas
 app.get('/admin/api/bookings', requireAuth, async (req, res) => {
   const { from, to } = req.query;
   const params = [];
@@ -160,7 +153,6 @@ app.get('/admin/api/bookings', requireAuth, async (req, res) => {
   res.json(rows);
 });
 
-// Abrir/cerrar cupo manual
 app.post('/admin/api/slot', requireAuth, async (req, res) => {
   const { date, slot, is_open } = req.body || {};
   if (!date || !['A','B'].includes(slot) || typeof is_open !== 'boolean') {
@@ -175,7 +167,6 @@ app.post('/admin/api/slot', requireAuth, async (req, res) => {
   res.json({ ok: true });
 });
 
-// CSV
 app.get('/admin/api/bookings.csv', requireAuth, async (req, res) => {
   const { rows } = await pool.query(
     `SELECT id, full_name, phone, instagram, date::text, slot, created_at
@@ -191,13 +182,22 @@ app.get('/admin/api/bookings.csv', requireAuth, async (req, res) => {
   res.send([header, ...lines].join('\n'));
 });
 
-// NUEVO: cancelar reserva (libera el cupo)
+// ✅ NUEVO: cancelar reserva con manejo de errores claro
 app.delete('/admin/api/booking/:id', requireAuth, async (req, res) => {
-  const id = parseInt(req.params.id, 10);
-  if (!id) return res.status(400).json({ error: 'ID inválido' });
-  const { rowCount } = await pool.query('DELETE FROM bookings WHERE id=$1', [id]);
-  if (rowCount === 0) return res.status(404).json({ error: 'Reserva no encontrada' });
-  res.json({ ok: true });
+  try {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id) || id <= 0) {
+      return res.status(400).json({ error: 'ID inválido' });
+    }
+    const result = await pool.query('DELETE FROM bookings WHERE id=$1', [id]);
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Reserva no encontrada' });
+    }
+    return res.json({ ok: true });
+  } catch (e) {
+    console.error('DELETE /admin/api/booking error', e?.message || e);
+    return res.status(500).json({ error: 'Fallo al cancelar la reserva' });
+  }
 });
 
 // ---------- Init DB o servidor ----------
