@@ -14,12 +14,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 /* -------------------- CORS -------------------- */
-/* Permitimos:
-   - Dominios en ALLOWED_ORIGIN (p.ej. Odoo)
-   - El propio dominio del servicio (admin) vía RENDER_EXTERNAL_URL o SELF_ORIGIN
-*/
-const external = (process.env.RENDER_EXTERNAL_URL || '').trim();   // Render la suele exponer, p.ej. https://warens-booking.onrender.com
-const selfOrigin = (process.env.SELF_ORIGIN || '').trim();         // opcional, por si querés fijarlo a mano
+const external = (process.env.RENDER_EXTERNAL_URL || '').trim();
+const selfOrigin = (process.env.SELF_ORIGIN || '').trim();
 const baseAllowed = (process.env.ALLOWED_ORIGIN || '')
   .split(',')
   .map(s => s.trim())
@@ -33,7 +29,6 @@ const allowedSet = new Set([
 
 app.use(cors({
   origin: (origin, cb) => {
-    // Requests sin header Origin (curl, same-origin en algunos navegadores) → permitir
     if (!origin) return cb(null, true);
     if (allowedSet.has(origin)) return cb(null, true);
     return cb(new Error('Not allowed by CORS'), false);
@@ -42,6 +37,9 @@ app.use(cors({
 
 /* -------------------- Slots -------------------- */
 const SLOT_MAP = { A: { start: '13:00', end: '15:00' }, B: { start: '15:00', end: '17:00' } };
+const ADMIN_NAME = 'Administrador';
+const ADMIN_PHONE = '0';
+const ADMIN_IG = 'admin';
 
 function todayCST() {
   const now = new Date();
@@ -99,7 +97,7 @@ app.get('/availability', async (req, res) => {
       let open = !booked;
       if (overrideMap.has(key)) {
         const forced = overrideMap.get(key);
-        open = forced && !booked; // false=cerrado; true=abierto si no está reservado
+        open = forced && !booked;
       }
       slots[s] = { open, booked, label: `${SLOT_MAP[s].start} - ${SLOT_MAP[s].end}` };
     }
@@ -171,19 +169,54 @@ app.get('/admin/api/bookings', requireAuth, async (req, res) => {
   res.json(rows);
 });
 
-// Abrir/cerrar cupo
+/* Abrir/Cerrar cupo + registrar bloqueo admin como “reserva” */
 app.post('/admin/api/slot', requireAuth, async (req, res) => {
   const { date, slot, is_open } = req.body || {};
   if (!date || !['A','B'].includes(slot) || typeof is_open !== 'boolean') {
     return res.status(400).json({ error: 'Datos inválidos' });
   }
-  await pool.query(
-    `INSERT INTO slot_overrides (date, slot, is_open)
-     VALUES ($1,$2,$3)
-     ON CONFLICT (date, slot) DO UPDATE SET is_open = EXCLUDED.is_open`,
-    [date, slot, is_open]
-  );
-  res.json({ ok: true });
+
+  try {
+    const result = await withTx(async (client) => {
+      // Upsert override
+      await client.query(
+        `INSERT INTO slot_overrides (date, slot, is_open)
+         VALUES ($1,$2,$3)
+         ON CONFLICT (date, slot) DO UPDATE SET is_open = EXCLUDED.is_open`,
+        [date, slot, is_open]
+      );
+
+      if (is_open) {
+        // Abrir: eliminar bloqueo admin si existiese
+        const del = await client.query(
+          `DELETE FROM bookings
+           WHERE date=$1 AND slot=$2 AND phone=$3 AND instagram=$4`,
+          [date, slot, ADMIN_PHONE, ADMIN_IG]
+        );
+        return { opened: true, removed_admin_block: del.rowCount > 0 };
+      } else {
+        // Cerrar: si no hay reserva, crear bloqueo admin
+        const existing = await client.query(
+          `SELECT id FROM bookings WHERE date=$1 AND slot=$2 FOR UPDATE`,
+          [date, slot]
+        );
+        if (existing.rowCount === 0) {
+          const ins = await client.query(
+            `INSERT INTO bookings (full_name, phone, instagram, date, slot)
+             VALUES ($1,$2,$3,$4,$5) RETURNING id`,
+            [ADMIN_NAME, ADMIN_PHONE, ADMIN_IG, date, slot]
+          );
+          return { closed: true, created_admin_block: true, id: ins.rows[0].id };
+        }
+        return { closed: true, created_admin_block: false };
+      }
+    });
+
+    return res.json({ ok: true, ...result });
+  } catch (e) {
+    console.error('POST /admin/api/slot error', e?.message || e);
+    return res.status(500).json({ error: 'No se pudo actualizar el cupo' });
+  }
 });
 
 // CSV
