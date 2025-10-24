@@ -4,83 +4,47 @@
   <meta charset="utf-8">
   <title>Warens – Admin reservas</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-
   <style>
     :root{
-      --bg:#0b0b0c;
-      --panel:#121215;
-      --panel-2:#17171b;
-      --text:#eeeeee;
-      --muted:#b7b7b7;
-      --line:#26262b;
-      --gold:#d4af37;
-      --gold-2:#b8911f;
-      --success:#2ecc71;
-      --danger:#ff4d4f;
+      --bg:#0b0b0c; --panel:#121215; --panel-2:#17171b; --text:#eeeeee;
+      --muted:#b7b7b7; --line:#26262b; --gold:#d4af37; --gold-2:#b8911f;
     }
-    *{ box-sizing: border-box; }
-    html,body{ height:100%; color-scheme: dark; }
+    *{ box-sizing:border-box } html,body{ height:100%; color-scheme:dark }
     body{
       margin:0; background: radial-gradient(1000px 600px at 20% -10%, rgba(212,175,55,.15), transparent),
                          radial-gradient(900px 600px at 120% 20%, rgba(212,175,55,.10), transparent),
                          var(--bg);
-      color:var(--text);
-      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      color:var(--text); font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
     }
     .wrap{ max-width:1200px; margin:32px auto; padding:0 20px; }
-    h1{
-      font-weight:700; letter-spacing:.3px; margin:0 0 18px;
-      display:flex; align-items:center; gap:10px;
-    }
-    h1::before{
-      content:""; width:36px; height:36px; border-radius:50%;
+    h1{ margin:0 0 18px; display:flex; align-items:center; gap:10px; font-weight:700 }
+    h1::before{ content:""; width:36px; height:36px; border-radius:50%;
       background: conic-gradient(from 0deg, var(--gold), var(--gold-2));
-      box-shadow: 0 0 0 2px rgba(212,175,55,.25), 0 6px 18px rgba(0,0,0,.6);
-    }
-
-    .grid{ display:grid; gap:18px; grid-template-columns: 1fr; }
-    @media (min-width: 980px){ .grid{ grid-template-columns: 1fr 1fr; } }
-
-    .card{
-      background:linear-gradient(180deg, var(--panel), var(--panel-2));
-      border:1px solid var(--line);
-      border-radius:16px; padding:18px;
-      box-shadow: 0 10px 30px rgba(0,0,0,.25);
-    }
-    .card h3{ margin:0 0 12px; font-size:18px; }
-
-    .row{ display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
-    label{ font-size:13px; color:var(--muted); }
-
-    input, select, button{
-      background:#0e0e11; color:var(--text);
-      border:1px solid var(--line); border-radius:12px;
-      padding:10px 12px; font-size:14px; outline:none;
-    }
-    input:focus, select:focus{ border-color: var(--gold); box-shadow: 0 0 0 3px rgba(212,175,55,.15); }
-    /* ICONOS DE CALENDARIO EN BLANCO */
-    input[type="date"]::-webkit-calendar-picker-indicator{
-      filter: invert(1) brightness(1.2);
-      cursor: pointer;
-    }
-    input[type="date"]{ color-scheme: dark; }
-
-    .btn{ background: linear-gradient(180deg, var(--gold), var(--gold-2)); border:none; color:#1a1a1a;
-          font-weight:700; letter-spacing:.3px; cursor:pointer; transition: transform .05s ease, filter .2s ease; }
-    .btn:hover{ filter: brightness(1.05); }
-    .btn:active{ transform: translateY(1px); }
-    .btn-ghost{ background:transparent; color:var(--gold); border:1px solid var(--gold); cursor:pointer; }
-
-    .status{ margin-top:8px; font-size:14px; padding:10px 12px; border-radius:10px; border:1px solid var(--line); display:none; }
-    .status.ok{ display:block; color:#0f0; border-color: rgba(46,204,113,.25); background:rgba(46,204,113,.08); }
-    .status.err{ display:block; color:#ff9ea1; border-color: rgba(255,77,79,.3); background:rgba(255,77,79,.07); }
-
-    table{ width:100%; border-collapse: collapse; margin-top:10px; }
-    th, td{ border-bottom:1px solid var(--line); padding:10px; font-size:14px; vertical-align: top; }
-    th{ text-align:left; color:var(--muted); font-weight:600; }
-    tbody tr:hover{ background:#121216; }
-    .actions{ display:flex; gap:8px; flex-wrap:wrap; }
-    .badge{ display:inline-block; padding:2px 8px; border-radius:999px; border:1px solid var(--gold); color:var(--gold); font-size:12px; }
+      box-shadow: 0 0 0 2px rgba(212,175,55,.25), 0 6px 18px rgba(0,0,0,.6); }
+    .grid{ display:grid; gap:18px; grid-template-columns:1fr }
+    @media(min-width:980px){ .grid{ grid-template-columns:1fr 1fr } }
+    .card{ background:linear-gradient(180deg,var(--panel),var(--panel-2)); border:1px solid var(--line);
+      border-radius:16px; padding:18px; box-shadow:0 10px 30px rgba(0,0,0,.25) }
+    .card h3{ margin:0 0 12px; font-size:18px }
+    .row{ display:flex; flex-wrap:wrap; gap:10px; align-items:center }
+    label{ font-size:13px; color:var(--muted) }
+    input,select,button{ background:#0e0e11; color:var(--text); border:1px solid var(--line); border-radius:12px;
+      padding:10px 12px; font-size:14px; outline:none }
+    input:focus,select:focus{ border-color:var(--gold); box-shadow:0 0 0 3px rgba(212,175,55,.15) }
+    input[type="date"]::-webkit-calendar-picker-indicator{ filter:invert(1) brightness(1.2); cursor:pointer }
+    input[type="date"]{ color-scheme:dark }
+    .btn{ background:linear-gradient(180deg,var(--gold),var(--gold-2)); border:none; color:#1a1a1a; font-weight:700; letter-spacing:.3px; cursor:pointer }
+    .btn-ghost{ background:transparent; color:var(--gold); border:1px solid var(--gold); cursor:pointer }
+    .status{ margin-top:8px; font-size:14px; padding:10px 12px; border-radius:10px; border:1px solid var(--line); display:none }
+    .status.ok{ display:block; color:#0f0; background:rgba(46,204,113,.08); border-color:rgba(46,204,113,.25) }
+    .status.err{ display:block; color:#ff9ea1; background:rgba(255,77,79,.07); border-color:rgba(255,77,79,.3) }
+    table{ width:100%; border-collapse:collapse; margin-top:10px }
+    th,td{ border-bottom:1px solid var(--line); padding:10px; font-size:14px; vertical-align:top }
+    th{ text-align:left; color:var(--muted); font-weight:600 }
+    tbody tr:hover{ background:#121216 }
+    .actions{ display:flex; gap:8px; flex-wrap:wrap }
+    .badge{ display:inline-block; padding:2px 8px; border-radius:999px; border:1px solid var(--gold); color:var(--gold); font-size:12px }
+    .disabled{ opacity:.5; pointer-events:none; filter:grayscale(.3) }
   </style>
 </head>
 <body>
@@ -88,77 +52,85 @@
     <h1>Admin – Reservas</h1>
 
     <div class="grid">
-      <!-- Autenticación -->
       <div class="card">
         <h3>Autenticación</h3>
         <div class="row">
           <input id="pwd" type="password" placeholder="ADMIN_PASSWORD" style="min-width:240px">
-          <button class="btn" onclick="login()">Usar</button>
-          <button class="btn-ghost" id="csv" onclick="downloadCSV(event)">Descargar CSV</button>
+          <button class="btn" id="btnLogin">Usar</button>
+          <button class="btn-ghost" id="btnCSV" disabled>Descargar CSV</button>
         </div>
         <div id="auth-msg" class="status"></div>
       </div>
 
-      <!-- Abrir/Cerrar -->
-      <div class="card">
+      <div class="card" id="cardToggle" class="disabled">
         <h3>Abrir / Cerrar cupo</h3>
         <div class="row" style="gap:12px">
-          <label>Fecha<br><input id="ov-date" type="date" placeholder="AAAA-MM-DD"></label>
+          <label>Fecha<br><input id="ov-date" type="date" placeholder="AAAA-MM-DD" disabled></label>
           <label>Turno<br>
-            <select id="ov-slot">
+            <select id="ov-slot" disabled>
               <option value="A">A (13–15)</option>
               <option value="B">B (15–17)</option>
             </select>
           </label>
           <label>Acción<br>
-            <select id="ov-open">
+            <select id="ov-open" disabled>
               <option value="true">Abrir</option>
               <option value="false">Cerrar</option>
             </select>
           </label>
           <div style="align-self:flex-end">
-            <button class="btn" onclick="toggle()">Aplicar</button>
+            <button class="btn" id="btnApply" disabled>Aplicar</button>
           </div>
         </div>
         <div id="ov-msg" class="status"></div>
       </div>
     </div>
 
-    <!-- Reservas -->
-    <div class="card" style="margin-top:18px">
+    <div class="card" style="margin-top:18px" id="cardList">
       <h3>Reservas</h3>
       <div class="row" style="gap:12px">
-        <label>Desde<br><input id="from" type="date"></label>
-        <label>Hasta<br><input id="to" type="date"></label>
+        <label>Desde<br><input id="from" type="date" disabled></label>
+        <label>Hasta<br><input id="to" type="date" disabled></label>
         <div style="align-self:flex-end">
-          <button class="btn" onclick="load()">Cargar</button>
+          <button class="btn" id="btnLoad" disabled>Cargar</button>
         </div>
       </div>
 
       <table id="tbl">
         <thead>
-          <tr>
-            <th>Fecha</th><th>Slot</th><th>Datos</th><th>Creado</th><th>Acciones</th>
-          </tr>
+          <tr><th>Fecha</th><th>Slot</th><th>Datos</th><th>Creado</th><th>Acciones</th></tr>
         </thead>
         <tbody></tbody>
       </table>
-
       <div id="list-msg" class="status"></div>
     </div>
   </div>
 
 <script>
 const API = location.origin;
+const qs = sel => document.querySelector(sel);
+const qsa = sel => document.querySelectorAll(sel);
 
-// token simple guardado en localStorage
 function tok() { return localStorage.getItem('admin_token') || ''; }
 function setTok(v){ localStorage.setItem('admin_token', v || ''); }
 
 function statusMsg(id, type, msg){
-  const e = document.getElementById(id);
+  const e = qs('#' + id);
   e.className = 'status ' + (type === 'ok' ? 'ok' : 'err');
   e.textContent = msg || '';
+}
+
+function setEnabled(auth){
+  // Habilita/Deshabilita toda la UI de reservas y toggle
+  qs('#btnCSV').disabled = !auth;
+  qsa('#ov-date, #ov-slot, #ov-open, #btnApply, #from, #to, #btnLoad').forEach(el => el.disabled = !auth);
+  if (!auth){
+    statusMsg('list-msg','err','Iniciá sesión para ver y gestionar reservas.');
+    qs('#tbl tbody').innerHTML = '';
+  } else {
+    // Limpia mensajes de bloqueo
+    qs('#list-msg').className='status'; qs('#list-msg').textContent='';
+  }
 }
 
 async function verifyAuth(){
@@ -169,14 +141,16 @@ async function verifyAuth(){
 }
 
 async function login(){
-  const pass = (document.getElementById('pwd').value || '').trim();
+  const pass = (qs('#pwd').value || '').trim();
   setTok(pass);
   const ok = await verifyAuth();
   if (ok){
     statusMsg('auth-msg','ok','¡Bienvenido/a! Acceso concedido.');
+    setEnabled(true);
   } else {
     setTok('');
     statusMsg('auth-msg','err','Contraseña incorrecta. Verificá ADMIN_PASSWORD en Render.');
+    setEnabled(false);
   }
 }
 
@@ -198,20 +172,20 @@ async function downloadCSV(e){
 
 async function load() {
   const ok = await verifyAuth();
-  if (!ok){ statusMsg('auth-msg','err','Iniciá sesión para ver reservas.'); return; }
+  if (!ok){ statusMsg('auth-msg','err','Iniciá sesión para ver reservas.'); setEnabled(false); return; }
 
   const q = [];
-  const f = document.getElementById('from').value;
-  const t = document.getElementById('to').value;
+  const f = qs('#from').value;
+  const t = qs('#to').value;
   if (f) q.push('from='+encodeURIComponent(f));
   if (t) q.push('to='+encodeURIComponent(t));
   const url = API + '/admin/api/bookings' + (q.length?('?'+q.join('&')):'');
 
   try{
     const r = await fetch(url, { headers: { Authorization: 'Bearer ' + tok() }});
-    if (r.status === 401){ statusMsg('auth-msg','err','Sesión inválida. Ingresá la clave.'); return; }
+    if (r.status === 401){ statusMsg('auth-msg','err','Sesión inválida. Ingresá la clave.'); setEnabled(false); return; }
     const data = await r.json();
-    const tb = document.querySelector('#tbl tbody');
+    const tb = qs('#tbl tbody');
     tb.innerHTML = '';
 
     if (Array.isArray(data) && data.length){
@@ -220,8 +194,7 @@ async function load() {
           <div><strong>${row.full_name}</strong></div>
           <div class="muted">Tel: ${row.phone}</div>
           <div class="muted">IG: ${row.instagram}</div>
-          <div class="badge">ID ${row.id}</div>
-        `;
+          <div class="badge">ID ${row.id}</div>`;
         const tr = document.createElement('tr');
         tr.innerHTML = `
           <td>${row.date}</td>
@@ -233,7 +206,6 @@ async function load() {
           </td>`;
         tb.appendChild(tr);
       }
-      // wire botones cancelar
       tb.querySelectorAll('button.btn-ghost').forEach(b=>{
         b.addEventListener('click', async (ev)=>{
           const id = ev.currentTarget.getAttribute('data-id');
@@ -245,7 +217,7 @@ async function load() {
     } else {
       const tr = document.createElement('tr');
       tr.innerHTML = `<td colspan="5" class="muted">No hay reservas para el rango elegido.</td>`;
-      document.querySelector('#tbl tbody').appendChild(tr);
+      qs('#tbl tbody').appendChild(tr);
       statusMsg('list-msg','ok','Sin resultados para el rango.');
     }
   }catch(err){
@@ -253,14 +225,13 @@ async function load() {
   }
 }
 
-// Abrir / Cerrar cupo
 async function toggle() {
   const ok = await verifyAuth();
-  if (!ok){ statusMsg('ov-msg', 'err', 'Iniciá sesión para modificar cupos.'); return; }
+  if (!ok){ statusMsg('ov-msg', 'err', 'Iniciá sesión para modificar cupos.'); setEnabled(false); return; }
 
-  const date = document.getElementById('ov-date').value;
-  const slot = document.getElementById('ov-slot').value;
-  const is_open = document.getElementById('ov-open').value === 'true';
+  const date = qs('#ov-date').value;
+  const slot = qs('#ov-slot').value;
+  const is_open = qs('#ov-open').value === 'true';
 
   if (!date){ statusMsg('ov-msg','err','Elegí una fecha.'); return; }
 
@@ -281,16 +252,15 @@ async function toggle() {
   }
 }
 
-// Cancelar reserva (DELETE) y recargar tabla
 async function cancelBooking(id){
   try{
     const r = await fetch(API + '/admin/api/booking/' + encodeURIComponent(id), {
       method: 'DELETE',
       headers: { Authorization: 'Bearer ' + tok() }
     });
+    const j = await r.json().catch(()=> ({}));
     if (!r.ok){
-      const j = await r.json().catch(()=>({error:'Error '+r.status}));
-      statusMsg('list-msg','err', j.error || 'No se pudo cancelar.');
+      statusMsg('list-msg','err', j.error || ('Error ' + r.status));
       return;
     }
     statusMsg('list-msg','ok','Reserva cancelada. El cupo quedó libre.');
@@ -300,10 +270,20 @@ async function cancelBooking(id){
   }
 }
 
-// auto-saludo si había token
-window.addEventListener('DOMContentLoaded', async ()=>{
+document.addEventListener('DOMContentLoaded', async () => {
+  // UI bloqueada por defecto
+  setEnabled(false);
+
+  // Botones
+  qs('#btnLogin').addEventListener('click', login);
+  qs('#btnCSV').addEventListener('click', downloadCSV);
+  qs('#btnLoad').addEventListener('click', load);
+  qs('#btnApply').addEventListener('click', toggle);
+
+  // Si había token guardado, lo validamos (no mostramos nada si no es válido)
   if (tok()){
     const ok = await verifyAuth();
+    setEnabled(ok);
     if (ok) statusMsg('auth-msg','ok','Sesión activa.');
   }
 });
