@@ -32,11 +32,9 @@
       padding:10px 12px; font-size:14px; outline:none }
     input:focus,select:focus{ border-color:var(--gold); box-shadow:0 0 0 3px rgba(212,175,55,.15) }
 
-    /* ====== DATE INPUT: ocultamos el indicador nativo y usamos botón blanco propio ====== */
+    /* Picker blanco custom ya instalado en tu versión anterior */
     input[type="date"]{ color-scheme:dark; padding-right:40px }
-    input[type="date"]::-webkit-calendar-picker-indicator{
-      opacity:0; pointer-events:none; /* oculta el icono nativo negro */
-    }
+    input[type="date"]::-webkit-calendar-picker-indicator{ opacity:0; pointer-events:none }
     .date-wrap{ position:relative; display:inline-block }
     .date-wrap .cal-btn{
       position:absolute; right:10px; top:50%; transform:translateY(-50%);
@@ -90,6 +88,7 @@
           </label>
           <label>Turno<br>
             <select id="ov-slot" disabled>
+              <option value="C">C (10–12)</option>
               <option value="A">A (13–15)</option>
               <option value="B">B (15–17)</option>
             </select>
@@ -275,7 +274,7 @@ async function toggle() {
     const j = await r.json().catch(()=> ({}));
     if (r.ok && j.ok){
       statusMsg('ov-msg', 'ok', (is_open?'Abierto':'Cerrado') + ' correctamente.');
-      load(); // refrescar tabla
+      load();
     } else {
       statusMsg('ov-msg', 'err', j.error || 'No se pudo aplicar el cambio.');
     }
@@ -299,15 +298,14 @@ async function cancelBooking(id){
   }
 }
 
-/* ---- hook para que el botón blanco abra el date-picker ---- */
 function wireCalendarButtons(){
   qsa('.cal-btn').forEach(btn=>{
     btn.addEventListener('click', ()=>{
       const forId = btn.getAttribute('data-for');
       const input = document.getElementById(forId);
       if (!input || input.disabled) return;
-      if (input.showPicker) input.showPicker(); // Chrome/Edge
-      else input.focus(); // fallback
+      if (input.showPicker) input.showPicker();
+      else input.focus();
     });
   });
 }
