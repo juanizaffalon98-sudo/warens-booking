@@ -36,8 +36,8 @@ app.use(cors({
 }));
 
 /* -------------------- Slots -------------------- */
-/* Ahora hay tres turnos de 2h:
-   C: 10–12, A: 13–15, B: 15–17  */
+/* Tres turnos:
+   C: 10–12, A: 13–15, B: 15–17 */
 const SLOT_ORDER = ['C','A','B'];
 const SLOT_MAP = {
   C: { start: '10:00', end: '12:00' },
@@ -46,7 +46,7 @@ const SLOT_MAP = {
 };
 
 const ADMIN_NAME = 'Administrador';
-the ADMIN_PHONE = '0';
+const ADMIN_PHONE = '0';   // <- CORREGIDO
 const ADMIN_IG = 'admin';
 
 function todayCST() {
@@ -105,7 +105,7 @@ app.get('/availability', async (req, res) => {
       let open = !booked;
       if (overrideMap.has(key)) {
         const forced = overrideMap.get(key);
-        open = forced && !booked; // si forced=false -> cerrado
+        open = forced && !booked;
       }
       resObj[s] = { open, booked, label: `${SLOT_MAP[s].start} - ${SLOT_MAP[s].end}` };
     }
