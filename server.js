@@ -13,17 +13,34 @@ app.use(express.json());
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// ---- CORS ----
-const allowed = process.env.ALLOWED_ORIGIN?.split(',').map(s => s.trim()).filter(Boolean) || [];
+/* -------------------- CORS -------------------- */
+/* Permitimos:
+   - Dominios en ALLOWED_ORIGIN (p.ej. Odoo)
+   - El propio dominio del servicio (admin) vía RENDER_EXTERNAL_URL o SELF_ORIGIN
+*/
+const external = (process.env.RENDER_EXTERNAL_URL || '').trim();   // Render la suele exponer, p.ej. https://warens-booking.onrender.com
+const selfOrigin = (process.env.SELF_ORIGIN || '').trim();         // opcional, por si querés fijarlo a mano
+const baseAllowed = (process.env.ALLOWED_ORIGIN || '')
+  .split(',')
+  .map(s => s.trim())
+  .filter(Boolean);
+
+const allowedSet = new Set([
+  ...baseAllowed,
+  ...(external ? [external] : []),
+  ...(selfOrigin ? [selfOrigin] : []),
+]);
+
 app.use(cors({
   origin: (origin, cb) => {
+    // Requests sin header Origin (curl, same-origin en algunos navegadores) → permitir
     if (!origin) return cb(null, true);
-    if (allowed.includes(origin)) return cb(null, true);
+    if (allowedSet.has(origin)) return cb(null, true);
     return cb(new Error('Not allowed by CORS'), false);
   }
 }));
 
-// ---- Slots ----
+/* -------------------- Slots -------------------- */
 const SLOT_MAP = { A: { start: '13:00', end: '15:00' }, B: { start: '15:00', end: '17:00' } };
 
 function todayCST() {
@@ -51,7 +68,7 @@ function rollingWindow(startStr, days=14) {
   return arr;
 }
 
-// ---------- PÚBLICO ----------
+/* -------------------- Público -------------------- */
 app.get('/availability', async (req, res) => {
   const start = req.query.start || toISODate(todayCST());
   const days = Math.min(parseInt(req.query.days || '14', 10), 31);
@@ -82,7 +99,7 @@ app.get('/availability', async (req, res) => {
       let open = !booked;
       if (overrideMap.has(key)) {
         const forced = overrideMap.get(key);
-        open = forced && !booked;
+        open = forced && !booked; // false=cerrado; true=abierto si no está reservado
       }
       slots[s] = { open, booked, label: `${SLOT_MAP[s].start} - ${SLOT_MAP[s].end}` };
     }
@@ -125,7 +142,7 @@ app.post('/book', async (req, res) => {
   }
 });
 
-// ---------- ADMIN ----------
+/* -------------------- Admin -------------------- */
 function requireAuth(req, res, next) {
   const auth = req.headers.authorization || '';
   const token = auth.replace('Bearer ','').trim();
@@ -137,6 +154,7 @@ app.get('/admin', (req, res) => {
   res.sendFile(path.join(__dirname, 'admin.html'));
 });
 
+// Listado de reservas
 app.get('/admin/api/bookings', requireAuth, async (req, res) => {
   const { from, to } = req.query;
   const params = [];
@@ -153,6 +171,7 @@ app.get('/admin/api/bookings', requireAuth, async (req, res) => {
   res.json(rows);
 });
 
+// Abrir/cerrar cupo
 app.post('/admin/api/slot', requireAuth, async (req, res) => {
   const { date, slot, is_open } = req.body || {};
   if (!date || !['A','B'].includes(slot) || typeof is_open !== 'boolean') {
@@ -167,6 +186,7 @@ app.post('/admin/api/slot', requireAuth, async (req, res) => {
   res.json({ ok: true });
 });
 
+// CSV
 app.get('/admin/api/bookings.csv', requireAuth, async (req, res) => {
   const { rows } = await pool.query(
     `SELECT id, full_name, phone, instagram, date::text, slot, created_at
@@ -182,7 +202,7 @@ app.get('/admin/api/bookings.csv', requireAuth, async (req, res) => {
   res.send([header, ...lines].join('\n'));
 });
 
-// ✅ NUEVO: cancelar reserva con manejo de errores claro
+// Cancelar reserva
 app.delete('/admin/api/booking/:id', requireAuth, async (req, res) => {
   try {
     const id = Number(req.params.id);
@@ -200,7 +220,7 @@ app.delete('/admin/api/booking/:id', requireAuth, async (req, res) => {
   }
 });
 
-// ---------- Init DB o servidor ----------
+/* -------------------- Health & start -------------------- */
 if (process.argv.includes('--init-db')) {
   const sql = fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf8');
   initSchema(sql)
@@ -209,5 +229,5 @@ if (process.argv.includes('--init-db')) {
 } else {
   app.get('/healthz', (_, res) => res.send('ok'));
   const port = process.env.PORT || 3000;
-  app.listen(port, () => console.log('Server on', port));
+  app.listen(port, () => console.log('Server on', port, 'allowed:', Array.from(allowedSet)));
 }
