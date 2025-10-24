@@ -32,24 +32,21 @@
       padding:10px 12px; font-size:14px; outline:none }
     input:focus,select:focus{ border-color:var(--gold); box-shadow:0 0 0 3px rgba(212,175,55,.15) }
 
-    /* ===== Calendario BLANCO (Chrome/WebKit) ===== */
-    input[type="date"]{
-      color-scheme:dark;
-      position:relative;
-    }
+    /* ====== DATE INPUT: ocultamos el indicador nativo y usamos botón blanco propio ====== */
+    input[type="date"]{ color-scheme:dark; padding-right:40px }
     input[type="date"]::-webkit-calendar-picker-indicator{
-      filter: invert(1) sepia(0) saturate(0) hue-rotate(0deg) brightness(2) contrast(1.2);
-      opacity:1;
-      background-color: transparent;
-      cursor:pointer;
+      opacity:0; pointer-events:none; /* oculta el icono nativo negro */
     }
-    /* Fallback: añade un icono blanco de fondo (sin interferir con el picker) */
-    input[type="date"]{
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='18' rx='2' ry='2'/%3E%3Cline x1='16' y1='2' x2='16' y2='6'/%3E%3Cline x1='8' y1='2' x2='8' y2='6'/%3E%3Cline x1='3' y1='10' x2='21' y2='10'/%3E%3C/svg%3E");
-      background-repeat:no-repeat;
-      background-position: calc(100% - 12px) center;
-      background-size:18px 18px;
-      padding-right:38px; /* deja espacio para el icono */
+    .date-wrap{ position:relative; display:inline-block }
+    .date-wrap .cal-btn{
+      position:absolute; right:10px; top:50%; transform:translateY(-50%);
+      width:20px; height:20px; border:0; background:transparent; cursor:pointer; padding:0;
+    }
+    .date-wrap .cal-btn::before{
+      content:""; display:block; width:100%; height:100%;
+      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='18' rx='2' ry='2'/%3E%3Cline x1='16' y1='2' x2='16' y2='6'/%3E%3Cline x1='8' y1='2' x2='8' y2='6'/%3E%3Cline x1='3' y1='10' x2='21' y2='10'/%3E%3C/svg%3E");
+      background-repeat:no-repeat; background-position:center; background-size:contain;
+      filter:drop-shadow(0 0 1px rgba(0,0,0,.6));
     }
 
     .btn{ background:linear-gradient(180deg,var(--gold),var(--gold-2)); border:none; color:#1a1a1a; font-weight:700; letter-spacing:.3px; cursor:pointer }
@@ -85,7 +82,12 @@
       <div class="card" id="cardToggle">
         <h3>Abrir / Cerrar cupo</h3>
         <div class="row" style="gap:12px">
-          <label>Fecha<br><input id="ov-date" type="date" placeholder="AAAA-MM-DD" disabled></label>
+          <label>Fecha<br>
+            <span class="date-wrap">
+              <input id="ov-date" type="date" placeholder="AAAA-MM-DD" disabled>
+              <button type="button" class="cal-btn" data-for="ov-date" aria-label="Abrir calendario"></button>
+            </span>
+          </label>
           <label>Turno<br>
             <select id="ov-slot" disabled>
               <option value="A">A (13–15)</option>
@@ -109,8 +111,18 @@
     <div class="card" style="margin-top:18px" id="cardList">
       <h3>Reservas</h3>
       <div class="row" style="gap:12px">
-        <label>Desde<br><input id="from" type="date" disabled></label>
-        <label>Hasta<br><input id="to" type="date" disabled></label>
+        <label>Desde<br>
+          <span class="date-wrap">
+            <input id="from" type="date" disabled>
+            <button type="button" class="cal-btn" data-for="from" aria-label="Abrir calendario"></button>
+          </span>
+        </label>
+        <label>Hasta<br>
+          <span class="date-wrap">
+            <input id="to" type="date" disabled>
+            <button type="button" class="cal-btn" data-for="to" aria-label="Abrir calendario"></button>
+          </span>
+        </label>
         <div style="align-self:flex-end">
           <button class="btn" id="btnLoad" disabled>Cargar</button>
         </div>
@@ -146,6 +158,7 @@ function statusMsg(id, type, msg){
 function setEnabled(auth){
   qs('#btnCSV').disabled = !auth;
   qsa('#ov-date,#ov-slot,#ov-open,#btnApply,#from,#to,#btnLoad').forEach(el => el.disabled = !auth);
+  qsa('.cal-btn').forEach(btn => btn.disabled = !auth);
   if (!auth){
     statusMsg('list-msg','err','Iniciá sesión para ver y gestionar reservas.');
     qs('#tbl tbody').innerHTML = '';
@@ -262,8 +275,7 @@ async function toggle() {
     const j = await r.json().catch(()=> ({}));
     if (r.ok && j.ok){
       statusMsg('ov-msg', 'ok', (is_open?'Abierto':'Cerrado') + ' correctamente.');
-      // 🔄 refrescamos la grilla para ver "Bloqueado por admin" o su eliminación
-      load();
+      load(); // refrescar tabla
     } else {
       statusMsg('ov-msg', 'err', j.error || 'No se pudo aplicar el cambio.');
     }
@@ -287,12 +299,26 @@ async function cancelBooking(id){
   }
 }
 
+/* ---- hook para que el botón blanco abra el date-picker ---- */
+function wireCalendarButtons(){
+  qsa('.cal-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const forId = btn.getAttribute('data-for');
+      const input = document.getElementById(forId);
+      if (!input || input.disabled) return;
+      if (input.showPicker) input.showPicker(); // Chrome/Edge
+      else input.focus(); // fallback
+    });
+  });
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
   setEnabled(false);
   qs('#btnLogin').addEventListener('click', login);
   qs('#btnCSV').addEventListener('click', downloadCSV);
   qs('#btnLoad').addEventListener('click', load);
   qs('#btnApply').addEventListener('click', toggle);
+  wireCalendarButtons();
 
   if (tok()){
     const ok = await verifyAuth();
