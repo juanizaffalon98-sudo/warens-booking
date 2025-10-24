@@ -36,9 +36,17 @@ app.use(cors({
 }));
 
 /* -------------------- Slots -------------------- */
-const SLOT_MAP = { A: { start: '13:00', end: '15:00' }, B: { start: '15:00', end: '17:00' } };
+/* Ahora hay tres turnos de 2h:
+   C: 10–12, A: 13–15, B: 15–17  */
+const SLOT_ORDER = ['C','A','B'];
+const SLOT_MAP = {
+  C: { start: '10:00', end: '12:00' },
+  A: { start: '13:00', end: '15:00' },
+  B: { start: '15:00', end: '17:00' }
+};
+
 const ADMIN_NAME = 'Administrador';
-const ADMIN_PHONE = '0';
+the ADMIN_PHONE = '0';
 const ADMIN_IG = 'admin';
 
 function todayCST() {
@@ -90,18 +98,18 @@ app.get('/availability', async (req, res) => {
   const overrideMap = new Map(overrides.map(o => [`${o.date}|${o.slot}`, o.is_open]));
 
   const out = dates.map(date => {
-    const slots = {};
-    for (const s of ['A','B']) {
+    const resObj = { date };
+    for (const s of SLOT_ORDER) {
       const key = `${date}|${s}`;
       const booked = bookedSet.has(key);
       let open = !booked;
       if (overrideMap.has(key)) {
         const forced = overrideMap.get(key);
-        open = forced && !booked;
+        open = forced && !booked; // si forced=false -> cerrado
       }
-      slots[s] = { open, booked, label: `${SLOT_MAP[s].start} - ${SLOT_MAP[s].end}` };
+      resObj[s] = { open, booked, label: `${SLOT_MAP[s].start} - ${SLOT_MAP[s].end}` };
     }
-    return { date, ...slots };
+    return resObj;
   });
 
   res.json(out);
@@ -109,7 +117,7 @@ app.get('/availability', async (req, res) => {
 
 app.post('/book', async (req, res) => {
   const { full_name, phone, instagram, date, slot } = req.body || {};
-  if (!full_name || !phone || !instagram || !date || !['A','B'].includes(slot)) {
+  if (!full_name || !phone || !instagram || !date || !SLOT_ORDER.includes(slot)) {
     return res.status(400).json({ error: 'Datos incompletos' });
   }
 
@@ -152,7 +160,6 @@ app.get('/admin', (req, res) => {
   res.sendFile(path.join(__dirname, 'admin.html'));
 });
 
-// Listado de reservas
 app.get('/admin/api/bookings', requireAuth, async (req, res) => {
   const { from, to } = req.query;
   const params = [];
@@ -169,16 +176,15 @@ app.get('/admin/api/bookings', requireAuth, async (req, res) => {
   res.json(rows);
 });
 
-/* Abrir/Cerrar cupo + registrar bloqueo admin como “reserva” */
+/* Abrir/Cerrar cupo + bloqueo admin como “reserva” */
 app.post('/admin/api/slot', requireAuth, async (req, res) => {
   const { date, slot, is_open } = req.body || {};
-  if (!date || !['A','B'].includes(slot) || typeof is_open !== 'boolean') {
+  if (!date || !SLOT_ORDER.includes(slot) || typeof is_open !== 'boolean') {
     return res.status(400).json({ error: 'Datos inválidos' });
   }
 
   try {
     const result = await withTx(async (client) => {
-      // Upsert override
       await client.query(
         `INSERT INTO slot_overrides (date, slot, is_open)
          VALUES ($1,$2,$3)
@@ -187,7 +193,6 @@ app.post('/admin/api/slot', requireAuth, async (req, res) => {
       );
 
       if (is_open) {
-        // Abrir: eliminar bloqueo admin si existiese
         const del = await client.query(
           `DELETE FROM bookings
            WHERE date=$1 AND slot=$2 AND phone=$3 AND instagram=$4`,
@@ -195,7 +200,6 @@ app.post('/admin/api/slot', requireAuth, async (req, res) => {
         );
         return { opened: true, removed_admin_block: del.rowCount > 0 };
       } else {
-        // Cerrar: si no hay reserva, crear bloqueo admin
         const existing = await client.query(
           `SELECT id FROM bookings WHERE date=$1 AND slot=$2 FOR UPDATE`,
           [date, slot]
@@ -219,8 +223,7 @@ app.post('/admin/api/slot', requireAuth, async (req, res) => {
   }
 });
 
-// CSV
-app.get('/admin/api/bookings.csv', requireAuth, async (req, res) => {
+app.get('/admin/api/bookings.csv', requireAuth, async (_req, res) => {
   const { rows } = await pool.query(
     `SELECT id, full_name, phone, instagram, date::text, slot, created_at
      FROM bookings ORDER BY date, slot`
@@ -235,7 +238,6 @@ app.get('/admin/api/bookings.csv', requireAuth, async (req, res) => {
   res.send([header, ...lines].join('\n'));
 });
 
-// Cancelar reserva
 app.delete('/admin/api/booking/:id', requireAuth, async (req, res) => {
   try {
     const id = Number(req.params.id);
