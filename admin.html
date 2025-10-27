@@ -1,328 +1,187 @@
 <!doctype html>
 <html lang="es">
 <head>
-  <meta charset="utf-8">
-  <title>Warens – Admin reservas</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <style>
-    :root{
-      --bg:#0b0b0c; --panel:#121215; --panel-2:#17171b; --text:#eeeeee;
-      --muted:#b7b7b7; --line:#26262b; --gold:#d4af37; --gold-2:#b8911f;
-    }
-    *{ box-sizing:border-box } html,body{ height:100%; color-scheme:dark }
-    body{
-      margin:0; background: radial-gradient(1000px 600px at 20% -10%, rgba(212,175,55,.15), transparent),
-                         radial-gradient(900px 600px at 120% 20%, rgba(212,175,55,.10), transparent),
-                         var(--bg);
-      color:var(--text); font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
-    }
-    .wrap{ max-width:1200px; margin:32px auto; padding:0 20px; }
-    h1{ margin:0 0 18px; display:flex; align-items:center; gap:10px; font-weight:700 }
-    h1::before{ content:""; width:36px; height:36px; border-radius:50%;
-      background: conic-gradient(from 0deg, var(--gold), var(--gold-2));
-      box-shadow: 0 0 0 2px rgba(212,175,55,.25), 0 6px 18px rgba(0,0,0,.6); }
-    .grid{ display:grid; gap:18px; grid-template-columns:1fr }
-    @media(min-width:980px){ .grid{ grid-template-columns:1fr 1fr } }
-    .card{ background:linear-gradient(180deg,var(--panel),var(--panel-2)); border:1px solid var(--line);
-      border-radius:16px; padding:18px; box-shadow:0 10px 30px rgba(0,0,0,.25) }
-    .card h3{ margin:0 0 12px; font-size:18px }
-    .row{ display:flex; flex-wrap:wrap; gap:10px; align-items:center }
-    label{ font-size:13px; color:var(--muted) }
-    input,select,button{ background:#0e0e11; color:var(--text); border:1px solid var(--line); border-radius:12px;
-      padding:10px 12px; font-size:14px; outline:none }
-    input:focus,select:focus{ border-color:var(--gold); box-shadow:0 0 0 3px rgba(212,175,55,.15) }
-
-    /* Picker blanco custom ya instalado en tu versión anterior */
-    input[type="date"]{ color-scheme:dark; padding-right:40px }
-    input[type="date"]::-webkit-calendar-picker-indicator{ opacity:0; pointer-events:none }
-    .date-wrap{ position:relative; display:inline-block }
-    .date-wrap .cal-btn{
-      position:absolute; right:10px; top:50%; transform:translateY(-50%);
-      width:20px; height:20px; border:0; background:transparent; cursor:pointer; padding:0;
-    }
-    .date-wrap .cal-btn::before{
-      content:""; display:block; width:100%; height:100%;
-      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='18' rx='2' ry='2'/%3E%3Cline x1='16' y1='2' x2='16' y2='6'/%3E%3Cline x1='8' y1='2' x2='8' y2='6'/%3E%3Cline x1='3' y1='10' x2='21' y2='10'/%3E%3C/svg%3E");
-      background-repeat:no-repeat; background-position:center; background-size:contain;
-      filter:drop-shadow(0 0 1px rgba(0,0,0,.6));
-    }
-
-    .btn{ background:linear-gradient(180deg,var(--gold),var(--gold-2)); border:none; color:#1a1a1a; font-weight:700; letter-spacing:.3px; cursor:pointer }
-    .btn-ghost{ background:transparent; color:var(--gold); border:1px solid var(--gold); cursor:pointer }
-    .status{ margin-top:8px; font-size:14px; padding:10px 12px; border-radius:10px; border:1px solid var(--line); display:none }
-    .status.ok{ display:block; color:#0f0; background:rgba(46,204,113,.08); border-color:rgba(46,204,113,.25) }
-    .status.err{ display:block; color:#ff9ea1; background:rgba(255,77,79,.07); border-color:rgba(255,77,79,.3) }
-    table{ width:100%; border-collapse:collapse; margin-top:10px }
-    th,td{ border-bottom:1px solid var(--line); padding:10px; font-size:14px; vertical-align:top }
-    th{ text-align:left; color:var(--muted); font-weight:600 }
-    tbody tr:hover{ background:#121216 }
-    .actions{ display:flex; gap:8px; flex-wrap:wrap }
-    .badge{ display:inline-block; padding:2px 8px; border-radius:999px; border:1px solid var(--gold); color:var(--gold); font-size:12px }
-    .disabled{ opacity:.5; pointer-events:none; filter:grayscale(.3) }
-    .admin-block{ color:#ffd66b; }
-  </style>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Warens – Admin reservas</title>
+<style>
+  :root{--bg:#0b0b0c;--panel:#121215;--panel-2:#17171b;--text:#eee;--muted:#b7b7b7;--line:#26262b;--gold:#d4af37;--gold-2:#b8911f}
+  *{box-sizing:border-box} html,body{height:100%;color-scheme:dark}
+  body{margin:0;background:radial-gradient(1000px 600px at 20% -10%,rgba(212,175,55,.15),transparent),radial-gradient(900px 600px at 120% 20%,rgba(212,175,55,.10),transparent),var(--bg);color:var(--text);font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial}
+  .wrap{max-width:1200px;margin:32px auto;padding:0 20px}
+  h1{margin:0 0 18px;display:flex;gap:10px;align-items:center;font-weight:800}
+  h1::before{content:"";width:36px;height:36px;border-radius:50%;background:conic-gradient(from 0deg,var(--gold),var(--gold-2));box-shadow:0 0 0 2px rgba(212,175,55,.25),0 6px 18px rgba(0,0,0,.6)}
+  .grid{display:grid;gap:18px;grid-template-columns:1fr} @media(min-width:980px){.grid{grid-template-columns:1fr 1fr}}
+  .card{background:linear-gradient(180deg,var(--panel),var(--panel-2));border:1px solid var(--line);border-radius:16px;padding:18px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  input,select,button{background:#0e0e11;color:var(--text);border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:14px;outline:none}
+  input:focus,select:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(212,175,55,.15)}
+  input[type="date"]{color-scheme:dark;padding-right:40px}
+  input[type="date"]::-webkit-calendar-picker-indicator{opacity:0;pointer-events:none}
+  .date-wrap{position:relative;display:inline-block}
+  .cal-btn{position:absolute;right:10px;top:50%;transform:translateY(-50%);width:20px;height:20px;border:0;background:transparent;cursor:pointer;padding:0}
+  .cal-btn::before{content:"";display:block;width:100%;height:100%;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='18' rx='2' ry='2'/%3E%3Cline x1='16' y1='2' x2='16' y2='6'/%3E%3Cline x1='8' y1='2' x2='8' y2='6'/%3E%3Cline x1='3' y1='10' x2='21' y2='10'/%3E%3C/svg%3E")}
+  .btn{background:linear-gradient(180deg,var(--gold),var(--gold-2));border:none;color:#1a1a1a;font-weight:700;letter-spacing:.3px;cursor:pointer}
+  .btn-ghost{background:transparent;color:var(--gold);border:1px solid var(--gold);cursor:pointer}
+  .status{margin-top:8px;padding:10px 12px;border-radius:10px;border:1px solid var(--line);display:none}
+  .status.ok{display:block;color:#0f0;background:rgba(46,204,113,.08);border-color:rgba(46,204,113,.25)}
+  .status.err{display:block;color:#ff9ea1;background:rgba(255,77,79,.07);border-color:rgba(255,77,79,.3)}
+  table{width:100%;border-collapse:collapse;margin-top:10px}
+  th,td{border-bottom:1px solid var(--line);padding:10px;font-size:14px;vertical-align:top}
+  th{color:#b7b7b7;text-align:left}
+  .badge{display:inline-block;padding:2px 8px;border-radius:999px;border:1px solid var(--gold);color:var(--gold);font-size:12px}
+</style>
 </head>
 <body>
-  <div class="wrap">
-    <h1>Admin – Reservas</h1>
+<div class="wrap">
+  <h1>Admin – Reservas</h1>
 
-    <div class="grid">
-      <div class="card">
-        <h3>Autenticación</h3>
-        <div class="row">
-          <input id="pwd" type="password" placeholder="ADMIN_PASSWORD" style="min-width:240px">
-          <button class="btn" id="btnLogin">Usar</button>
-          <button class="btn-ghost" id="btnCSV" disabled>Descargar CSV</button>
-        </div>
-        <div id="auth-msg" class="status"></div>
+  <div class="grid">
+    <div class="card">
+      <h3>Autenticación</h3>
+      <div class="row">
+        <input id="pwd" type="password" placeholder="ADMIN_PASSWORD" style="min-width:240px">
+        <button class="btn" id="btnLogin">Usar</button>
+        <button class="btn-ghost" id="btnCSV" disabled>Descargar CSV</button>
       </div>
-
-      <div class="card" id="cardToggle">
-        <h3>Abrir / Cerrar cupo</h3>
-        <div class="row" style="gap:12px">
-          <label>Fecha<br>
-            <span class="date-wrap">
-              <input id="ov-date" type="date" placeholder="AAAA-MM-DD" disabled>
-              <button type="button" class="cal-btn" data-for="ov-date" aria-label="Abrir calendario"></button>
-            </span>
-          </label>
-          <label>Turno<br>
-            <select id="ov-slot" disabled>
-              <option value="C">C (10–12)</option>
-              <option value="A">A (13–15)</option>
-              <option value="B">B (15–17)</option>
-            </select>
-          </label>
-          <label>Acción<br>
-            <select id="ov-open" disabled>
-              <option value="true">Abrir</option>
-              <option value="false">Cerrar</option>
-            </select>
-          </label>
-          <div style="align-self:flex-end">
-            <button class="btn" id="btnApply" disabled>Aplicar</button>
-          </div>
-        </div>
-        <div id="ov-msg" class="status"></div>
-      </div>
+      <div id="auth-msg" class="status"></div>
     </div>
 
-    <div class="card" style="margin-top:18px" id="cardList">
-      <h3>Reservas</h3>
+    <div class="card">
+      <h3>Abrir / Cerrar cupo</h3>
       <div class="row" style="gap:12px">
-        <label>Desde<br>
+        <label>Fecha<br>
           <span class="date-wrap">
-            <input id="from" type="date" disabled>
-            <button type="button" class="cal-btn" data-for="from" aria-label="Abrir calendario"></button>
+            <input id="ov-date" type="date" disabled>
+            <button type="button" class="cal-btn" data-for="ov-date"></button>
           </span>
         </label>
-        <label>Hasta<br>
-          <span class="date-wrap">
-            <input id="to" type="date" disabled>
-            <button type="button" class="cal-btn" data-for="to" aria-label="Abrir calendario"></button>
-          </span>
+        <label>Turno<br>
+          <select id="ov-slot" disabled>
+            <option value="C">C (10–12)</option>
+            <option value="A">A (13–15)</option>
+            <option value="B">B (15–17)</option>
+          </select>
         </label>
-        <div style="align-self:flex-end">
-          <button class="btn" id="btnLoad" disabled>Cargar</button>
-        </div>
+        <label>Acción<br>
+          <select id="ov-open" disabled>
+            <option value="true">Abrir</option>
+            <option value="false">Cerrar</option>
+          </select>
+        </label>
+        <div style="align-self:flex-end"><button class="btn" id="btnApply" disabled>Aplicar</button></div>
       </div>
-
-      <table id="tbl">
-        <thead>
-          <tr><th>Fecha</th><th>Slot</th><th>Datos</th><th>Creado</th><th>Acciones</th></tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-      <div id="list-msg" class="status"></div>
+      <div id="ov-msg" class="status"></div>
     </div>
   </div>
 
+  <div class="card" style="margin-top:18px">
+    <h3>Reservas</h3>
+    <div class="row" style="gap:12px">
+      <label>Desde<br>
+        <span class="date-wrap"><input id="from" type="date" disabled><button class="cal-btn" data-for="from"></button></span>
+      </label>
+      <label>Hasta<br>
+        <span class="date-wrap"><input id="to" type="date" disabled><button class="cal-btn" data-for="to"></button></span>
+      </label>
+      <div style="align-self:flex-end"><button class="btn" id="btnLoad" disabled>Cargar</button></div>
+    </div>
+
+    <table id="tbl">
+      <thead><tr><th>Fecha</th><th>Slot</th><th>Datos</th><th>Creado</th><th>Acciones</th></tr></thead>
+      <tbody></tbody>
+    </table>
+    <div id="list-msg" class="status"></div>
+  </div>
+</div>
+
 <script>
 const API = location.origin;
-const ADMIN_PHONE = '0';
-const ADMIN_IG = 'admin';
-
-const qs = s => document.querySelector(s);
+const qs  = s => document.querySelector(s);
 const qsa = s => document.querySelectorAll(s);
 
-function tok() { return localStorage.getItem('admin_token') || ''; }
-function setTok(v){ localStorage.setItem('admin_token', v || ''); }
+function tok(){ return localStorage.getItem('admin_token') || '' }
+function setTok(v){ localStorage.setItem('admin_token', v || '') }
 
 function statusMsg(id, type, msg){
-  const e = qs('#' + id);
-  e.className = 'status ' + (type === 'ok' ? 'ok' : 'err');
-  e.textContent = msg || '';
+  const e = qs('#'+id); e.className = 'status ' + (type==='ok'?'ok':'err'); e.textContent = msg || '';
 }
-
-function setEnabled(auth){
-  qs('#btnCSV').disabled = !auth;
-  qsa('#ov-date,#ov-slot,#ov-open,#btnApply,#from,#to,#btnLoad').forEach(el => el.disabled = !auth);
-  qsa('.cal-btn').forEach(btn => btn.disabled = !auth);
-  if (!auth){
-    statusMsg('list-msg','err','Iniciá sesión para ver y gestionar reservas.');
-    qs('#tbl tbody').innerHTML = '';
-  } else {
-    qs('#list-msg').className='status'; qs('#list-msg').textContent='';
-  }
+function setEnabled(a){
+  qs('#btnCSV').disabled = !a;
+  qsa('#ov-date,#ov-slot,#ov-open,#btnApply,#from,#to,#btnLoad,.cal-btn').forEach(x=>x.disabled=!a);
 }
 
 async function verifyAuth(){
-  try{
-    const r = await fetch(API + '/admin/api/bookings', { headers:{ Authorization: 'Bearer ' + tok() }});
-    return r.status === 200;
-  }catch(_){ return false; }
+  try{ const r = await fetch(API+'/admin/api/bookings',{headers:{Authorization:'Bearer '+tok()}}); return r.status===200; }
+  catch{ return false; }
 }
-
 async function login(){
-  const pass = (qs('#pwd').value || '').trim();
-  setTok(pass);
+  setTok((qs('#pwd').value||'').trim());
   const ok = await verifyAuth();
   if (ok){ statusMsg('auth-msg','ok','¡Bienvenido/a! Acceso concedido.'); setEnabled(true); }
   else { setTok(''); statusMsg('auth-msg','err','Contraseña incorrecta.'); setEnabled(false); }
 }
-
-async function downloadCSV(e){
-  e?.preventDefault?.();
-  const ok = await verifyAuth();
-  if (!ok){ statusMsg('auth-msg','err','Iniciá sesión para descargar.'); return; }
-  const r = await fetch(API + '/admin/api/bookings.csv', { headers:{ Authorization: 'Bearer ' + tok() }});
-  if (!r.ok){ statusMsg('auth-msg','err','No se pudo descargar (HTTP '+r.status+')'); return; }
-  const blob = await r.blob();
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a'); a.href = url; a.download = 'bookings.csv';
-  document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+async function downloadCSV(){
+  const r = await fetch(API+'/admin/api/bookings.csv',{headers:{Authorization:'Bearer '+tok()}});
+  if (!r.ok) return statusMsg('auth-msg','err','No se pudo descargar (HTTP '+r.status+')');
+  const blob = await r.blob(); const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href=url; a.download='bookings.csv'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
 }
-
 function renderRows(data){
-  const tb = qs('#tbl tbody');
-  tb.innerHTML = '';
-  if (!Array.isArray(data) || !data.length){
-    const tr = document.createElement('tr');
-    tr.innerHTML = `<td colspan="5" class="muted">No hay reservas para el rango elegido.</td>`;
-    tb.appendChild(tr);
-    return;
-  }
-  for (const row of data) {
-    const isAdminBlock = (row.phone === ADMIN_PHONE && row.instagram === ADMIN_IG);
-    const info = isAdminBlock
-      ? `<div><strong class="admin-block">Bloqueado por admin</strong></div>
-         <div class="muted">Tel: ${row.phone}</div>
-         <div class="muted">IG: ${row.instagram}</div>
-         <div class="badge">ID ${row.id}</div>`
-      : `<div><strong>${row.full_name}</strong></div>
-         <div class="muted">Tel: ${row.phone}</div>
-         <div class="muted">IG: ${row.instagram}</div>
-         <div class="badge">ID ${row.id}</div>`;
-
+  const tb = qs('#tbl tbody'); tb.innerHTML='';
+  if (!data.length){ tb.innerHTML = '<tr><td colspan="5" class="muted">Sin resultados.</td></tr>'; return; }
+  for (const r of data){
+    const info = `
+      <div><strong>${r.full_name || '—'}</strong></div>
+      <div class="muted">Email: ${r.email || '-'}</div>
+      <div class="muted">Tel: ${r.phone || '-'}</div>
+      <div class="muted">IG: ${r.instagram || '-'}</div>
+      <div class="badge">ID ${r.id}</div>`;
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td>${row.date}</td>
-      <td>${row.slot}</td>
+      <td>${r.date}</td><td>${r.slot}</td>
       <td>${info}</td>
-      <td>${new Date(row.created_at).toLocaleString()}</td>
-      <td class="actions">
-        <button class="btn-ghost" data-id="${row.id}">Cancelar</button>
-      </td>`;
+      <td>${new Date(r.created_at).toLocaleString()}</td>
+      <td><button class="btn-ghost" data-id="${r.id}">Cancelar</button></td>`;
     tb.appendChild(tr);
   }
-  tb.querySelectorAll('button.btn-ghost').forEach(b=>{
-    b.addEventListener('click', async (ev)=>{
-      const id = ev.currentTarget.getAttribute('data-id');
+  tb.querySelectorAll('button').forEach(b=>{
+    b.addEventListener('click', async ev=>{
+      const id = ev.currentTarget.dataset.id;
       if (!confirm('¿Cancelar y liberar este cupo?')) return;
-      await cancelBooking(id);
+      const r = await fetch(API+'/admin/api/booking/'+id, { method:'DELETE', headers:{Authorization:'Bearer '+tok()}});
+      const j = await r.json().catch(()=>({}));
+      if (!r.ok) return statusMsg('list-msg','err', j.error || 'Error '+r.status);
+      statusMsg('list-msg','ok','Reserva cancelada.'); load();
     });
   });
 }
-
-async function load() {
-  const ok = await verifyAuth();
-  if (!ok){ statusMsg('auth-msg','err','Iniciá sesión para ver reservas.'); setEnabled(false); return; }
-
-  const q = [];
-  const f = qs('#from').value;
-  const t = qs('#to').value;
-  if (f) q.push('from='+encodeURIComponent(f));
-  if (t) q.push('to='+encodeURIComponent(t));
-  const url = API + '/admin/api/bookings' + (q.length?('?'+q.join('&')):'');
-
-  try{
-    const r = await fetch(url, { headers: { Authorization: 'Bearer ' + tok() }});
-    if (!r.ok){ statusMsg('list-msg','err','Error '+r.status); return; }
-    const data = await r.json();
-    renderRows(data);
-    statusMsg('list-msg','ok','Reservas cargadas ('+data.length+').');
-  }catch(_){
-    statusMsg('list-msg','err','Error al cargar reservas.');
-  }
+async function load(){
+  const f = qs('#from').value, t = qs('#to').value;
+  const q = []; if (f) q.push('from='+encodeURIComponent(f)); if (t) q.push('to='+encodeURIComponent(t));
+  const r = await fetch(API+'/admin/api/bookings'+(q.length?('?'+q.join('&')):''), { headers:{Authorization:'Bearer '+tok()}});
+  if (!r.ok) return statusMsg('list-msg','err','Error '+r.status);
+  renderRows(await r.json()); statusMsg('list-msg','ok','Reservas cargadas.');
 }
-
-async function toggle() {
-  const ok = await verifyAuth();
-  if (!ok){ statusMsg('ov-msg', 'err', 'Iniciá sesión para modificar cupos.'); setEnabled(false); return; }
-
-  const date = qs('#ov-date').value;
-  const slot = qs('#ov-slot').value;
-  const is_open = qs('#ov-open').value === 'true';
-  if (!date){ statusMsg('ov-msg','err','Elegí una fecha.'); return; }
-
-  try{
-    const r = await fetch(API + '/admin/api/slot', {
-      method: 'POST',
-      headers: { 'Content-Type':'application/json', Authorization: 'Bearer ' + tok() },
-      body: JSON.stringify({ date, slot, is_open })
-    });
-    const j = await r.json().catch(()=> ({}));
-    if (r.ok && j.ok){
-      statusMsg('ov-msg', 'ok', (is_open?'Abierto':'Cerrado') + ' correctamente.');
-      load();
-    } else {
-      statusMsg('ov-msg', 'err', j.error || 'No se pudo aplicar el cambio.');
-    }
-  }catch(_){
-    statusMsg('ov-msg', 'err', 'Error de red.');
-  }
-}
-
-async function cancelBooking(id){
-  try{
-    const r = await fetch(API + '/admin/api/booking/' + encodeURIComponent(id), {
-      method: 'DELETE',
-      headers: { Authorization: 'Bearer ' + tok() }
-    });
-    const j = await r.json().catch(()=> ({}));
-    if (!r.ok){ statusMsg('list-msg','err', j.error || ('Error ' + r.status)); return; }
-    statusMsg('list-msg','ok','Reserva cancelada. El cupo quedó libre.');
-    load();
-  }catch(_){
-    statusMsg('list-msg','err','Error de red al cancelar.');
-  }
-}
-
 function wireCalendarButtons(){
   qsa('.cal-btn').forEach(btn=>{
-    btn.addEventListener('click', ()=>{
-      const forId = btn.getAttribute('data-for');
-      const input = document.getElementById(forId);
-      if (!input || input.disabled) return;
-      if (input.showPicker) input.showPicker();
-      else input.focus();
-    });
+    btn.addEventListener('click', ()=>{ const id = btn.getAttribute('data-for'); const i = document.getElementById(id); if (i && i.showPicker) i.showPicker(); else i?.focus(); });
   });
 }
-
-document.addEventListener('DOMContentLoaded', async () => {
+async function toggle(){
+  const date = qs('#ov-date').value, slot = qs('#ov-slot').value, is_open = qs('#ov-open').value==='true';
+  if (!date) return statusMsg('ov-msg','err','Elegí una fecha.');
+  const r = await fetch(API+'/admin/api/slot',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+tok()},body:JSON.stringify({date,slot,is_open})});
+  const j = await r.json().catch(()=>({})); if (!r.ok||!j.ok) return statusMsg('ov-msg','err', j.error||'No se pudo aplicar');
+  statusMsg('ov-msg','ok',(is_open?'Abierto':'Cerrado')+' correctamente.'); load();
+}
+document.addEventListener('DOMContentLoaded', async ()=>{
   setEnabled(false);
-  qs('#btnLogin').addEventListener('click', login);
-  qs('#btnCSV').addEventListener('click', downloadCSV);
-  qs('#btnLoad').addEventListener('click', load);
-  qs('#btnApply').addEventListener('click', toggle);
+  qs('#btnLogin').addEventListener('click',login);
+  qs('#btnCSV').addEventListener('click',downloadCSV);
+  qs('#btnLoad').addEventListener('click',load);
+  qs('#btnApply').addEventListener('click',toggle);
   wireCalendarButtons();
-
-  if (tok()){
-    const ok = await verifyAuth();
-    setEnabled(ok);
-    if (ok) statusMsg('auth-msg','ok','Sesión activa.');
-  }
+  if (tok()){ const ok = await verifyAuth(); setEnabled(ok); if (ok) statusMsg('auth-msg','ok','Sesión activa.'); }
 });
 </script>
 </body>
