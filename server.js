@@ -5,6 +5,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import { pool, initSchema, withTx } from './db.js';
+import nodemailer from 'nodemailer';
 
 dotenv.config();
 const app = express();
@@ -13,20 +14,16 @@ app.use(express.json());
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-/* -------------------- CORS -------------------- */
+/* ---------- CORS ---------- */
 const external = (process.env.RENDER_EXTERNAL_URL || '').trim();
 const selfOrigin = (process.env.SELF_ORIGIN || '').trim();
 const baseAllowed = (process.env.ALLOWED_ORIGIN || '')
-  .split(',')
-  .map(s => s.trim())
-  .filter(Boolean);
-
+  .split(',').map(s => s.trim()).filter(Boolean);
 const allowedSet = new Set([
   ...baseAllowed,
   ...(external ? [external] : []),
   ...(selfOrigin ? [selfOrigin] : []),
 ]);
-
 app.use(cors({
   origin: (origin, cb) => {
     if (!origin) return cb(null, true);
@@ -35,20 +32,19 @@ app.use(cors({
   }
 }));
 
-/* -------------------- Slots -------------------- */
-/* Tres turnos:
-   C: 10–12, A: 13–15, B: 15–17 */
-const SLOT_ORDER = ['C','A','B'];
+/* ---------- Slots ---------- */
+const SLOT_ORDER = ['C','A','B']; // C=10–12, A=13–15, B=15–17
 const SLOT_MAP = {
   C: { start: '10:00', end: '12:00' },
   A: { start: '13:00', end: '15:00' },
   B: { start: '15:00', end: '17:00' }
 };
 
-const ADMIN_NAME = 'Administrador';
-const ADMIN_PHONE = '0';   // <- CORREGIDO
-const ADMIN_IG = 'admin';
+const ADMIN_NAME  = 'Administrador';
+const ADMIN_PHONE = '0';
+const ADMIN_IG    = 'admin';
 
+/* ---------- Helpers fecha ---------- */
 function todayCST() {
   const now = new Date();
   return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
@@ -59,71 +55,103 @@ function toISODate(d) {
   const day = String(d.getUTCDate()).padStart(2,'0');
   return `${y}-${m}-${day}`;
 }
-function isWeekday(d) {
-  const wd = d.getUTCDay();
-  return wd >= 1 && wd <= 5;
-}
+function isWeekday(d) { const wd = d.getUTCDay(); return wd>=1 && wd<=5; }
 function rollingWindow(startStr, days=14) {
   const start = new Date(`${startStr}T00:00:00Z`);
   const arr = [];
-  for (let i=0; i<days; i++) {
+  for (let i=0;i<days;i++){
     const d = new Date(start);
-    d.setUTCDate(d.getUTCDate() + i);
+    d.setUTCDate(d.getUTCDate()+i);
     if (isWeekday(d)) arr.push(toISODate(d));
   }
   return arr;
 }
 
-/* -------------------- Público -------------------- */
+/* ---------- Mailer ---------- */
+const transporter = nodemailer.createTransport({
+  host: process.env.SMTP_HOST,
+  port: Number(process.env.SMTP_PORT || 587),
+  secure: String(process.env.SMTP_SECURE || '').toLowerCase() === 'true',
+  auth: process.env.SMTP_USER ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS } : undefined,
+});
+const FROM_EMAIL  = process.env.FROM_EMAIL || 'no-reply@warensfinancial.com';
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'juan@warensfinancial.com';
+
+async function sendAdminEmail(b) {
+  const html = `
+    <h2>Nueva reserva confirmada</h2>
+    <p><b>Nombre:</b> ${b.full_name}</p>
+    <p><b>Email:</b> ${b.email || '-'}</p>
+    <p><b>Teléfono:</b> ${b.phone}</p>
+    <p><b>Instagram:</b> ${b.instagram}</p>
+    <p><b>Fecha:</b> ${b.date} — <b>Horario:</b> ${SLOT_MAP[b.slot].start}–${SLOT_MAP[b.slot].end}</p>
+    <p><b>ID:</b> ${b.id}</p>
+  `;
+  await transporter.sendMail({
+    from: `Warens Booking <${FROM_EMAIL}>`,
+    to: ADMIN_EMAIL,
+    subject: `Nueva reserva – ${b.full_name} (${b.date} ${b.slot})`,
+    html
+  });
+}
+async function sendClientEmail(b) {
+  if (!b.email) return;
+  const html = `
+    <p>Gracias <b>${b.full_name}</b>, tu turno fue reservado con éxito.</p>
+    <p><b>Fecha:</b> ${b.date}<br>
+       <b>Horario:</b> ${SLOT_MAP[b.slot].start}–${SLOT_MAP[b.slot].end}</p>
+    <p>Datos registrados: ${b.email} · ${b.phone} · ${b.instagram}</p>
+    <p>— Warens Financial Group</p>
+  `;
+  await transporter.sendMail({
+    from: `Warens Booking <${FROM_EMAIL}>`,
+    to: b.email,
+    subject: `Confirmación de reserva – ${b.date}`,
+    html
+  });
+}
+
+/* ---------- Público ---------- */
 app.get('/availability', async (req, res) => {
   const start = req.query.start || toISODate(todayCST());
-  const days = Math.min(parseInt(req.query.days || '14', 10), 31);
-
+  const days  = Math.min(parseInt(req.query.days || '14',10), 31);
   const dates = rollingWindow(start, days);
-  if (dates.length === 0) return res.json([]);
+  if (!dates.length) return res.json([]);
 
   const { rows: bookings } = await pool.query(
-    `SELECT id, date::text, slot FROM bookings
-     WHERE date >= $1 AND date <= $2`,
+    `SELECT date::text, slot FROM bookings WHERE date >= $1 AND date <= $2`,
     [dates[0], dates[dates.length-1]]
   );
-
   const { rows: overrides } = await pool.query(
-    `SELECT date::text, slot, is_open FROM slot_overrides
-     WHERE date >= $1 AND date <= $2`,
+    `SELECT date::text, slot, is_open FROM slot_overrides WHERE date >= $1 AND date <= $2`,
     [dates[0], dates[dates.length-1]]
   );
 
-  const bookedSet = new Set(bookings.map(b => `${b.date}|${b.slot}`));
-  const overrideMap = new Map(overrides.map(o => [`${o.date}|${o.slot}`, o.is_open]));
+  const bookedSet  = new Set(bookings.map(b => `${b.date}|${b.slot}`));
+  const overrideMp = new Map(overrides.map(o => [`${o.date}|${o.slot}`, o.is_open]));
 
   const out = dates.map(date => {
-    const resObj = { date };
-    for (const s of SLOT_ORDER) {
+    const o = { date };
+    for (const s of SLOT_ORDER){
       const key = `${date}|${s}`;
       const booked = bookedSet.has(key);
       let open = !booked;
-      if (overrideMap.has(key)) {
-        const forced = overrideMap.get(key);
-        open = forced && !booked;
-      }
-      resObj[s] = { open, booked, label: `${SLOT_MAP[s].start} - ${SLOT_MAP[s].end}` };
+      if (overrideMp.has(key)) open = overrideMp.get(key) && !booked;
+      o[s] = { open, booked, label: `${SLOT_MAP[s].start} - ${SLOT_MAP[s].end}` };
     }
-    return resObj;
+    return o;
   });
-
   res.json(out);
 });
 
 app.post('/book', async (req, res) => {
-  const { full_name, phone, instagram, date, slot } = req.body || {};
+  const { full_name, phone, instagram, email, date, slot } = req.body || {};
   if (!full_name || !phone || !instagram || !date || !SLOT_ORDER.includes(slot)) {
     return res.status(400).json({ error: 'Datos incompletos' });
   }
-
   const start = toISODate(todayCST());
-  const validDates = new Set(rollingWindow(start, 14));
-  if (!validDates.has(date)) return res.status(400).json({ error: 'Fecha fuera de ventana o no hábil' });
+  const valid = new Set(rollingWindow(start, 14));
+  if (!valid.has(date)) return res.status(400).json({ error: 'Fecha fuera de ventana o no hábil' });
 
   try {
     const result = await withTx(async (client) => {
@@ -134,135 +162,117 @@ app.post('/book', async (req, res) => {
       if (o.rowCount > 0 && o.rows[0].is_open === false) throw new Error('Ese turno está cerrado');
 
       const ins = await client.query(
-        `INSERT INTO bookings (full_name, phone, instagram, date, slot)
-         VALUES ($1,$2,$3,$4,$5)
-         RETURNING id, created_at`,
-        [full_name, phone, instagram, date, slot]
+        `INSERT INTO bookings (full_name, phone, instagram, email, date, slot)
+         VALUES ($1,$2,$3,$4,$5,$6)
+         RETURNING id, full_name, phone, instagram, email, date::text as date, slot, created_at`,
+        [full_name, phone, instagram, email || null, date, slot]
       );
       return ins.rows[0];
     });
 
-    res.json({ ok: true, booking_id: result.id, created_at: result.created_at });
+    // enviar emails (no bloquea la respuesta si falla)
+    Promise.allSettled([ sendAdminEmail(result), sendClientEmail(result) ]).catch(()=>{});
+    res.json({ ok:true, booking_id: result.id, created_at: result.created_at });
   } catch (e) {
     res.status(409).json({ error: e.message });
   }
 });
 
-/* -------------------- Admin -------------------- */
-function requireAuth(req, res, next) {
-  const auth = req.headers.authorization || '';
-  const token = auth.replace('Bearer ','').trim();
+/* ---------- Admin ---------- */
+function requireAuth(req, _res, next){
+  const token = (req.headers.authorization||'').replace('Bearer ','').trim();
   if (token && token === process.env.ADMIN_PASSWORD) return next();
-  return res.status(401).json({ error: 'Unauthorized' });
+  return _res.status(401).json({ error: 'Unauthorized' });
 }
+app.get('/admin', (_req,res)=> res.sendFile(path.join(__dirname,'admin.html')));
 
-app.get('/admin', (req, res) => {
-  res.sendFile(path.join(__dirname, 'admin.html'));
-});
-
-app.get('/admin/api/bookings', requireAuth, async (req, res) => {
+app.get('/admin/api/bookings', requireAuth, async (req,res)=>{
   const { from, to } = req.query;
   const params = [];
   let where = '1=1';
-  if (from) { params.push(from); where += ` AND date >= $${params.length}`; }
-  if (to)   { params.push(to);   where += ` AND date <= $${params.length}`; }
-
+  if (from){ params.push(from); where += ` AND date >= $${params.length}`; }
+  if (to){   params.push(to);   where += ` AND date <= $${params.length}`; }
   const { rows } = await pool.query(
-    `SELECT id, full_name, phone, instagram, date::text, slot, created_at
-     FROM bookings
-     WHERE ${where}
-     ORDER BY date, slot`, params
+    `SELECT id, full_name, phone, instagram, email, date::text, slot, created_at
+     FROM bookings WHERE ${where} ORDER BY date, slot`, params
   );
   res.json(rows);
 });
 
-/* Abrir/Cerrar cupo + bloqueo admin como “reserva” */
-app.post('/admin/api/slot', requireAuth, async (req, res) => {
+app.post('/admin/api/slot', requireAuth, async (req,res)=>{
   const { date, slot, is_open } = req.body || {};
   if (!date || !SLOT_ORDER.includes(slot) || typeof is_open !== 'boolean') {
     return res.status(400).json({ error: 'Datos inválidos' });
   }
-
-  try {
-    const result = await withTx(async (client) => {
+  try{
+    const result = await withTx(async (client)=>{
       await client.query(
         `INSERT INTO slot_overrides (date, slot, is_open)
          VALUES ($1,$2,$3)
          ON CONFLICT (date, slot) DO UPDATE SET is_open = EXCLUDED.is_open`,
         [date, slot, is_open]
       );
-
-      if (is_open) {
+      if (is_open){
         const del = await client.query(
-          `DELETE FROM bookings
-           WHERE date=$1 AND slot=$2 AND phone=$3 AND instagram=$4`,
+          `DELETE FROM bookings WHERE date=$1 AND slot=$2 AND phone=$3 AND instagram=$4`,
           [date, slot, ADMIN_PHONE, ADMIN_IG]
         );
-        return { opened: true, removed_admin_block: del.rowCount > 0 };
+        return { opened:true, removed_admin_block: del.rowCount>0 };
       } else {
-        const existing = await client.query(
-          `SELECT id FROM bookings WHERE date=$1 AND slot=$2 FOR UPDATE`,
-          [date, slot]
-        );
-        if (existing.rowCount === 0) {
+        const ex = await client.query(`SELECT id FROM bookings WHERE date=$1 AND slot=$2 FOR UPDATE`, [date, slot]);
+        if (ex.rowCount === 0){
           const ins = await client.query(
-            `INSERT INTO bookings (full_name, phone, instagram, date, slot)
-             VALUES ($1,$2,$3,$4,$5) RETURNING id`,
-            [ADMIN_NAME, ADMIN_PHONE, ADMIN_IG, date, slot]
+            `INSERT INTO bookings (full_name, phone, instagram, email, date, slot)
+             VALUES ($1,$2,$3,$4,$5,$6) RETURNING id`,
+            [ADMIN_NAME, ADMIN_PHONE, ADMIN_IG, null, date, slot]
           );
-          return { closed: true, created_admin_block: true, id: ins.rows[0].id };
+          return { closed:true, created_admin_block:true, id: ins.rows[0].id };
         }
-        return { closed: true, created_admin_block: false };
+        return { closed:true, created_admin_block:false };
       }
     });
-
-    return res.json({ ok: true, ...result });
-  } catch (e) {
-    console.error('POST /admin/api/slot error', e?.message || e);
-    return res.status(500).json({ error: 'No se pudo actualizar el cupo' });
+    res.json({ ok:true, ...result });
+  }catch(e){
+    console.error('admin/slot', e);
+    res.status(500).json({ error:'No se pudo actualizar el cupo' });
   }
 });
 
-app.get('/admin/api/bookings.csv', requireAuth, async (_req, res) => {
+app.get('/admin/api/bookings.csv', requireAuth, async (_req,res)=>{
   const { rows } = await pool.query(
-    `SELECT id, full_name, phone, instagram, date::text, slot, created_at
+    `SELECT id, full_name, phone, instagram, email, date::text, slot, created_at
      FROM bookings ORDER BY date, slot`
   );
-  const header = 'id,full_name,phone,instagram,date,slot,created_at';
-  const lines = rows.map(r => [
-    r.id, JSON.stringify(r.full_name), JSON.stringify(r.phone),
-    JSON.stringify(r.instagram), r.date, r.slot, r.created_at.toISOString()
+  const header = 'id,full_name,phone,instagram,email,date,slot,created_at';
+  const lines  = rows.map(r => [
+    r.id, JSON.stringify(r.full_name), JSON.stringify(r.phone), JSON.stringify(r.instagram),
+    JSON.stringify(r.email||''), r.date, r.slot, r.created_at.toISOString()
   ].join(','));
   res.setHeader('Content-Type','text/csv; charset=utf-8');
   res.setHeader('Content-Disposition','attachment; filename="bookings.csv"');
   res.send([header, ...lines].join('\n'));
 });
 
-app.delete('/admin/api/booking/:id', requireAuth, async (req, res) => {
-  try {
+app.delete('/admin/api/booking/:id', requireAuth, async (req,res)=>{
+  try{
     const id = Number(req.params.id);
-    if (!Number.isInteger(id) || id <= 0) {
-      return res.status(400).json({ error: 'ID inválido' });
-    }
+    if (!Number.isInteger(id) || id<=0) return res.status(400).json({ error:'ID inválido' });
     const result = await pool.query('DELETE FROM bookings WHERE id=$1', [id]);
-    if (result.rowCount === 0) {
-      return res.status(404).json({ error: 'Reserva no encontrada' });
-    }
-    return res.json({ ok: true });
-  } catch (e) {
-    console.error('DELETE /admin/api/booking error', e?.message || e);
-    return res.status(500).json({ error: 'Fallo al cancelar la reserva' });
+    if (result.rowCount===0) return res.status(404).json({ error:'Reserva no encontrada' });
+    res.json({ ok:true });
+  }catch(e){
+    console.error('admin delete', e);
+    res.status(500).json({ error:'Fallo al cancelar la reserva' });
   }
 });
 
-/* -------------------- Health & start -------------------- */
+/* ---------- Start ---------- */
 if (process.argv.includes('--init-db')) {
-  const sql = fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf8');
-  initSchema(sql)
-    .then(() => { console.log('DB schema initialized'); process.exit(0); })
-    .catch(e => { console.error(e); process.exit(1); });
+  const sql = fs.readFileSync(path.join(__dirname,'schema.sql'),'utf8');
+  initSchema(sql).then(()=>{ console.log('DB schema initialized'); process.exit(0);})
+                 .catch(e=>{ console.error(e); process.exit(1);});
 } else {
-  app.get('/healthz', (_, res) => res.send('ok'));
+  app.get('/healthz', (_req,res)=>res.send('ok'));
   const port = process.env.PORT || 3000;
-  app.listen(port, () => console.log('Server on', port, 'allowed:', Array.from(allowedSet)));
+  app.listen(port, ()=> console.log('Server on', port, 'allowed:', Array.from(allowedSet)));
 }
